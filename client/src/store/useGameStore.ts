@@ -71,14 +71,26 @@ function generateAnonymousId(): string {
   return `user-${Math.random().toString(36).substring(2, 10)}`;
 }
 
+export interface TopicAccuracyRecord {
+  totalAttempts: number;
+  totalCorrect: number;
+}
+
 interface GameStoreState {
   user: UserProgress;
   pendingLevelUp: number | null;
   newlyUnlockedBadges: Badge[];
+  streakProtectedNotice: string | null;
+  timedSprintMode: boolean;
+  streakFreezes: number;
+  dailyChallengeCompletedDate: string | null;
+  topicAccuracy: Record<string, TopicAccuracyRecord>;
 
   addXp: (amount: number) => void;
   clearLevelUp: () => void;
   clearNewlyUnlockedBadges: () => void;
+  clearStreakProtectedNotice: () => void;
+  setTimedSprintMode: (enabled: boolean) => void;
   incrementComboStreak: () => void;
   resetComboStreak: () => void;
   recordDailyActivity: () => void;
@@ -90,6 +102,8 @@ interface GameStoreState {
     xpEarned: number;
     durationSeconds: number;
   }) => { newlyUnlocked: Badge[]; levelUpOccurred: boolean };
+  completeDailyChallenge: () => void;
+  getTopicDifficultyLabel: (topicId: string) => string;
   resetProgress: () => void;
 }
 
@@ -114,6 +128,11 @@ export const useGameStore = create<GameStoreState>()(
       },
       pendingLevelUp: null,
       newlyUnlockedBadges: [],
+      streakProtectedNotice: null,
+      timedSprintMode: false,
+      streakFreezes: 1,
+      dailyChallengeCompletedDate: null,
+      topicAccuracy: {},
 
       addXp: (amount: number) => {
         set((state) => {
@@ -130,6 +149,9 @@ export const useGameStore = create<GameStoreState>()(
             levelUpTriggered = true;
           }
 
+          // Milestone streak freeze award at level up
+          const updatedFreezes = levelUpTriggered ? state.streakFreezes + 1 : state.streakFreezes;
+
           return {
             user: {
               ...state.user,
@@ -138,6 +160,7 @@ export const useGameStore = create<GameStoreState>()(
               level: newLevel,
               nextLevelXp,
             },
+            streakFreezes: updatedFreezes,
             pendingLevelUp: levelUpTriggered ? newLevel : state.pendingLevelUp,
           };
         });
@@ -145,6 +168,8 @@ export const useGameStore = create<GameStoreState>()(
 
       clearLevelUp: () => set({ pendingLevelUp: null }),
       clearNewlyUnlockedBadges: () => set({ newlyUnlockedBadges: [] }),
+      clearStreakProtectedNotice: () => set({ streakProtectedNotice: null }),
+      setTimedSprintMode: (enabled: boolean) => set({ timedSprintMode: enabled }),
 
       incrementComboStreak: () =>
         set((state) => ({
@@ -169,12 +194,21 @@ export const useGameStore = create<GameStoreState>()(
         const last = state.user.lastActiveDate;
 
         let newStreak = state.user.streakDays;
+        let notice: string | null = null;
+        let freezes = state.streakFreezes;
+
         if (last === today) {
           // Already recorded today
         } else if (last === yesterday) {
           newStreak += 1;
         } else if (last < yesterday) {
-          newStreak = 1;
+          // Missed a day
+          if (freezes > 0) {
+            freezes -= 1;
+            notice = `Your streak freeze protected your ${state.user.streakDays}-day streak.`;
+          } else {
+            newStreak = 1;
+          }
         }
 
         const newLongest = Math.max(state.user.longestStreak, newStreak);
@@ -191,6 +225,8 @@ export const useGameStore = create<GameStoreState>()(
               [today]: currentCount + 1,
             },
           },
+          streakFreezes: freezes,
+          streakProtectedNotice: notice,
         }));
       },
 
@@ -223,12 +259,19 @@ export const useGameStore = create<GameStoreState>()(
           ? stateAfterAddXp.user.completedTopics
           : [...stateAfterAddXp.user.completedTopics, topicId];
 
-        // Evaluate 6 Badges
+        // Update Topic Accuracy Tracking
+        const prevAcc = stateAfterAddXp.topicAccuracy[topicId] || { totalAttempts: 0, totalCorrect: 0 };
+        const updatedAcc = {
+          totalAttempts: prevAcc.totalAttempts + totalQuestions,
+          totalCorrect: prevAcc.totalCorrect + score,
+        };
+
+        // Evaluate Badges
         const currentBadges = stateAfterAddXp.user.badges;
         const newlyUnlocked: Badge[] = [];
 
         const updatedBadges = currentBadges.map((badge) => {
-          if (badge.unlockedAt) return badge; // Already unlocked
+          if (badge.unlockedAt) return badge;
 
           let unlock = false;
           if (badge.id === 'first-steps' && updatedHistory.length >= 1) {
@@ -268,10 +311,34 @@ export const useGameStore = create<GameStoreState>()(
               [today]: (s.user.activityHeatmap[today] || 0) + 1,
             },
           },
+          topicAccuracy: {
+            ...s.topicAccuracy,
+            [topicId]: updatedAcc,
+          },
           newlyUnlockedBadges: newlyUnlocked,
         }));
 
         return { newlyUnlocked, levelUpOccurred };
+      },
+
+      completeDailyChallenge: () => {
+        const today = getTodayString();
+        const state = get();
+        if (state.dailyChallengeCompletedDate === today) return;
+
+        get().addXp(150); // Daily Challenge Bonus XP
+        get().recordDailyActivity();
+
+        set({ dailyChallengeCompletedDate: today });
+      },
+
+      getTopicDifficultyLabel: (topicId: string) => {
+        const acc = get().topicAccuracy[topicId];
+        if (!acc || acc.totalAttempts === 0) return 'Adaptive · Standard';
+        const ratio = acc.totalCorrect / acc.totalAttempts;
+        if (ratio >= 0.8) return 'Adaptive · Hard';
+        if (ratio < 0.6) return 'Adaptive · Guided';
+        return 'Adaptive · Balanced';
       },
 
       resetProgress: () => {
@@ -294,6 +361,11 @@ export const useGameStore = create<GameStoreState>()(
           },
           pendingLevelUp: null,
           newlyUnlockedBadges: [],
+          streakProtectedNotice: null,
+          timedSprintMode: false,
+          streakFreezes: 1,
+          dailyChallengeCompletedDate: null,
+          topicAccuracy: {},
         });
       },
     }),

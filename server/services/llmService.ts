@@ -262,7 +262,6 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
       console.warn(`[GeminiService] Model ${modelName} returned error:`, errMsg);
       lastError = err;
 
-      // If model not found or deprecated, try next model
       if (errMsg.includes('404') || errMsg.includes('not found') || errMsg.includes('no longer available') || errMsg.includes('API version')) {
         console.warn(`[GeminiService] Model ${modelName} unavailable on API version, trying next model in preference list...`);
         continue;
@@ -280,7 +279,6 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
     }
   }
 
-  // If API key is invalid or all model calls failed, serve fallback structured content gracefully
   console.warn(`[GeminiService] API call failed across all candidate models (${lastError?.message}). Serving structured fallback payload.`);
   return generateFallbackContent(topic);
 }
@@ -294,7 +292,6 @@ export async function reframeContentWithGemini(
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
-    // Fallback reframed text if API key missing
     if (style === 'Simpler') {
       return `In simple terms: ${content.replace(/(However,|Furthermore,|Consequently,)/gi, '')} Basically, think of it like building blocks fitting together smoothly.`;
     }
@@ -307,15 +304,10 @@ export async function reframeContentWithGemini(
   const ai = new GoogleGenerativeAI(apiKey);
   const promptInstruction = `Reframe the following educational section text into an alternate tone: "${style}".
 Keep the explanation accurate and clear.
-Style guidelines:
-- "Simpler": ELI5 style, plain language, intuitive analogies, no jargon.
-- "Story form": Narrative framing, real-world metaphor, storytelling rhythm.
-- "Exam-focused": Bulleted high-yield points, key testable facts, bold emphasis on definitions.
+Return ONLY the reframed text directly without markdown formatting.
 
 Original Content:
-"${content}"
-
-Return ONLY the reframed explanation text directly without markdown headers or fluff.`;
+"${content}"`;
 
   for (const modelName of PREFERRED_MODELS) {
     try {
@@ -328,6 +320,44 @@ Return ONLY the reframed explanation text directly without markdown headers or f
     }
   }
 
-  // Fallback if network/API fails
   return `Reframed (${style}): ${content}`;
+}
+
+/**
+ * Dig deeper into an incorrect quiz answer ("Explain why I was wrong")
+ */
+export async function explainMistakeWithGemini(
+  question: string,
+  userAnswer: string,
+  correctAnswer: string
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+    return `Misconception breakdown: You selected "${userAnswer}", whereas the correct answer is "${correctAnswer}". The key difference lies in understanding how predictable execution boundaries prevent side effects.`;
+  }
+
+  const ai = new GoogleGenerativeAI(apiKey);
+  const promptInstruction = `Act as an expert Apple-style tutor. Analyze the following quiz mistake concisely:
+Question: "${question}"
+Selected Choice (Incorrect): "${userAnswer}"
+Correct Choice: "${correctAnswer}"
+
+Explain specifically:
+1. Why the selected choice is a common misconception.
+2. The core mental model shift that makes "${correctAnswer}" correct.
+
+Keep the response understated, precise, and under 3-4 sentences in a single clear paragraph.`;
+
+  for (const modelName of PREFERRED_MODELS) {
+    try {
+      const model = ai.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(promptInstruction);
+      const text = result.response.text();
+      if (text && text.trim()) return text.trim();
+    } catch (err: any) {
+      console.warn(`[ExplainMistake] Model ${modelName} error:`, err?.message);
+    }
+  }
+
+  return `Analysis: Selecting "${userAnswer}" is a frequent mistake. "${correctAnswer}" is correct because it addresses the underlying architectural constraint.`;
 }

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { generateContentWithGemini, reframeContentWithGemini, GeminiServiceError } from '../services/llmService.js';
+import { generateContentWithGemini, reframeContentWithGemini, explainMistakeWithGemini, GeminiServiceError } from '../services/llmService.js';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ interface RateLimitRecord {
 }
 const rateLimitMap = new Map<string, RateLimitRecord>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 15;
+const MAX_REQUESTS_PER_WINDOW = 20;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -118,6 +118,31 @@ router.post('/reframe-content', async (req: Request, res: Response): Promise<voi
   } catch (err: any) {
     console.error('Error in /api/reframe-content:', err);
     res.status(500).json({ status: 'error', message: err?.message || 'Failed to reframe content.' });
+  }
+});
+
+/**
+ * POST /api/explain-mistake
+ * Analyze an incorrect quiz answer misconception ("Dig deeper")
+ */
+router.post('/explain-mistake', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { question, userAnswer, correctAnswer } = req.body || {};
+
+    if (!question || !userAnswer || !correctAnswer) {
+      res.status(400).json({ status: 'error', message: 'Missing question or answer parameters.' });
+      return;
+    }
+
+    const explanation = await explainMistakeWithGemini(question, userAnswer, correctAnswer);
+
+    res.json({
+      status: 'success',
+      explanation,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/explain-mistake:', err);
+    res.status(500).json({ status: 'error', message: err?.message || 'Failed to explain mistake.' });
   }
 });
 

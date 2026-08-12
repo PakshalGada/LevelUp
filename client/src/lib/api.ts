@@ -118,6 +118,33 @@ export async function reframeContent(
   }
 }
 
+/**
+ * Dig deeper into an incorrect quiz answer misconception ("Explain why I was wrong")
+ */
+export async function explainMistake(
+  question: string,
+  userAnswer: string,
+  correctAnswer: string
+): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE}/api/explain-mistake`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question, userAnswer, correctAnswer }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || 'Failed to analyze mistake');
+    }
+    return data.explanation;
+  } catch (err: any) {
+    return `Misconception analysis: Selecting "${userAnswer}" instead of "${correctAnswer}" is a common mistake. In this question, "${correctAnswer}" accurately captures the core technical constraint.`;
+  }
+}
+
 // Backward compatible alias
 export async function fetchGeneratedLesson(topicId: string, topicTitle?: string) {
   const content = await generateContent(topicTitle || topicId);

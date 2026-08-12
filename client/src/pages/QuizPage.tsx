@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { QuizQuestion, Badge as BadgeType } from '../types';
 import { useGameStore } from '../store/useGameStore';
 import { useContentStore } from '../store/useContentStore';
+import { explainMistake } from '../lib/api';
+import { playCorrectTick, playIncorrectTone, playLevelUpChime, playClick } from '../lib/soundEffects';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -75,11 +77,19 @@ const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
 export const QuizPage: React.FC = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const navigate = useNavigate();
-  const { user, recordQuizResult, newlyUnlockedBadges, clearNewlyUnlockedBadges } = useGameStore();
+  const {
+    user,
+    timedSprintMode,
+    getTopicDifficultyLabel,
+    recordQuizResult,
+    clearNewlyUnlockedBadges,
+  } = useGameStore();
+
   const { getContent } = useContentStore();
 
   const topicSlug = topicId || '';
   const cachedContent = getContent(topicSlug);
+  const difficultyLabel = getTopicDifficultyLabel(topicSlug);
 
   const questions: QuizQuestion[] = (cachedContent && cachedContent.quiz && cachedContent.quiz.length > 0)
     ? cachedContent.quiz
@@ -93,10 +103,66 @@ export const QuizPage: React.FC = () => {
   const [showFloatingXp, setShowFloatingXp] = useState(false);
   const [quizFinished, setQuizFinished] = useState(false);
   const [unlockedBadgesToReveal, setUnlockedBadgesToReveal] = useState<BadgeType[]>([]);
-  const [revealedBadgeIndex, setRevealedBadgeIndex] = useState<number>(0);
+
+  // Timed Sprint 15s Timer
+  const [sprintTimeLeft, setSprintTimeLeft] = useState<number>(15);
+  const sprintTimerRef = useRef<any>(null);
+
+  // Mistake Explanations ("Dig deeper") state
+  const [incorrectAnswers, setIncorrectAnswers] = useState<
+    Array<{ questionId: string; question: string; userAns: string; correctAns: string; llmAnalysis?: string; isAnalyzing?: boolean }>
+  >([]);
 
   const startTimeRef = useRef<number>(Date.now());
   const currentQuestion = questions[currentIdx];
+
+  // Timed Sprint 15s per-question timer logic
+  useEffect(() => {
+    if (timedSprintMode && !submitted && !quizFinished) {
+      setSprintTimeLeft(15);
+      if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+
+      sprintTimerRef.current = setInterval(() => {
+        setSprintTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(sprintTimerRef.current);
+            // Auto submit timed out question
+            handleAutoSubmitTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
+    };
+  }, [currentIdx, timedSprintMode, submitted, quizFinished]);
+
+  // Keyboard navigation shortcuts (1-4 keys & Enter)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (quizFinished) return;
+
+      if (['1', '2', '3', '4'].includes(e.key)) {
+        const optionIdx = parseInt(e.key, 10) - 1;
+        if (optionIdx < currentQuestion.options.length && !submitted) {
+          playClick();
+          setSelectedOption(optionIdx);
+        }
+      } else if (e.key === 'Enter') {
+        if (!submitted && selectedOption !== null) {
+          handleSubmitAnswer();
+        } else if (submitted) {
+          handleNextQuestion();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedOption, submitted, quizFinished, currentIdx, currentQuestion]);
 
   useEffect(() => {
     startTimeRef.current = Date.now();
@@ -105,27 +171,59 @@ export const QuizPage: React.FC = () => {
 
   const handleSelectOption = (idx: number) => {
     if (submitted) return;
+    playClick();
     setSelectedOption(idx);
+  };
+
+  const handleAutoSubmitTimeout = () => {
+    if (submitted) return;
+    setSubmitted(true);
+    playIncorrectTone();
+    setComboCount(0);
+
+    const targetCorrectIndex = currentQuestion.correctIndex ?? currentQuestion.correctAnswer ?? 0;
+    setIncorrectAnswers((prev) => [
+      ...prev,
+      {
+        questionId: currentQuestion.id,
+        question: currentQuestion.question,
+        userAns: 'Timed out (No selection)',
+        correctAns: currentQuestion.options[targetCorrectIndex],
+      },
+    ]);
   };
 
   const handleSubmitAnswer = () => {
     if (selectedOption === null || submitted) return;
-    setSubmitted(true);
+    if (sprintTimerRef.current) clearInterval(sprintTimerRef.current);
 
+    setSubmitted(true);
     const targetCorrectIndex = currentQuestion.correctIndex ?? currentQuestion.correctAnswer ?? 0;
     const isCorrect = selectedOption === targetCorrectIndex;
 
     if (isCorrect) {
+      playCorrectTick();
       setScore((prev) => prev + 1);
       setComboCount((prev) => prev + 1);
       setShowFloatingXp(true);
       setTimeout(() => setShowFloatingXp(false), 1200);
     } else {
+      playIncorrectTone();
       setComboCount(0);
+      setIncorrectAnswers((prev) => [
+        ...prev,
+        {
+          questionId: currentQuestion.id,
+          question: currentQuestion.question,
+          userAns: currentQuestion.options[selectedOption],
+          correctAns: currentQuestion.options[targetCorrectIndex],
+        },
+      ]);
     }
   };
 
   const handleNextQuestion = () => {
+    playClick();
     if (currentIdx + 1 < questions.length) {
       setCurrentIdx((prev) => prev + 1);
       setSelectedOption(null);
@@ -133,9 +231,9 @@ export const QuizPage: React.FC = () => {
     } else {
       // Quiz Finished
       const durationSeconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
-      const totalEarnedXp = (score * 20) + (score === questions.length ? 50 : 25);
+      const totalEarnedXp = (score * 20) + (score === questions.length ? 50 : 25) + (timedSprintMode ? 30 : 0);
 
-      const { newlyUnlocked } = recordQuizResult({
+      const { newlyUnlocked, levelUpOccurred } = recordQuizResult({
         topicId: topicSlug,
         topicTitle: cachedContent?.lesson.title || topicSlug.replace(/-/g, ' '),
         score,
@@ -144,12 +242,32 @@ export const QuizPage: React.FC = () => {
         durationSeconds,
       });
 
+      if (levelUpOccurred || score === questions.length) {
+        playLevelUpChime();
+      }
+
       setUnlockedBadgesToReveal(newlyUnlocked);
       setQuizFinished(true);
     }
   };
 
+  const handleDigDeeper = async (questionId: string) => {
+    const target = incorrectAnswers.find((i) => i.questionId === questionId);
+    if (!target || target.llmAnalysis || target.isAnalyzing) return;
+
+    setIncorrectAnswers((prev) =>
+      prev.map((i) => (i.questionId === questionId ? { ...i, isAnalyzing: true } : i))
+    );
+
+    const explanation = await explainMistake(target.question, target.userAns, target.correctAns);
+
+    setIncorrectAnswers((prev) =>
+      prev.map((i) => (i.questionId === questionId ? { ...i, llmAnalysis: explanation, isAnalyzing: false } : i))
+    );
+  };
+
   const handleRestartQuiz = () => {
+    playClick();
     setCurrentIdx(0);
     setSelectedOption(null);
     setSubmitted(false);
@@ -157,13 +275,13 @@ export const QuizPage: React.FC = () => {
     setComboCount(0);
     setQuizFinished(false);
     setUnlockedBadgesToReveal([]);
-    setRevealedBadgeIndex(0);
+    setIncorrectAnswers([]);
     startTimeRef.current = Date.now();
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 font-serif pb-16">
-      {/* Header */}
+      {/* Top Navigation & Difficulty Badge */}
       <div className="flex items-center justify-between">
         <Link 
           to={`/lesson/${topicSlug}`} 
@@ -172,47 +290,68 @@ export const QuizPage: React.FC = () => {
           &larr; Back to Lesson
         </Link>
         
-        <span className="text-xs font-semibold px-3 py-1 bg-grayscale-100 dark:bg-grayscale-900 border border-grayscale-200 dark:border-grayscale-800 rounded-full text-pure-black dark:text-pure-white">
-          Quiz Challenge: {cachedContent?.lesson.title || topicSlug}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-serif text-grayscale-400 font-medium">
+            {difficultyLabel}
+          </span>
+          {timedSprintMode && (
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
+              Timed Sprint (15s)
+            </span>
+          )}
+        </div>
       </div>
 
       {!quizFinished ? (
         <div className="space-y-8">
           
-          {/* 1. TOP 5-DASH PROGRESS SEGMENT LINE */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 flex items-center gap-2">
-              {questions.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                    idx === currentIdx
-                      ? 'bg-pure-black dark:bg-pure-white'
-                      : idx < currentIdx
-                      ? 'bg-grayscale-400 dark:bg-grayscale-600'
-                      : 'bg-grayscale-200 dark:bg-grayscale-800'
-                  }`}
-                />
-              ))}
+          {/* 1. TOP 5-DASH PROGRESS SEGMENT LINE & TIMED DRAIN */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 flex items-center gap-2">
+                {questions.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                      idx === currentIdx
+                        ? 'bg-pure-black dark:bg-pure-white'
+                        : idx < currentIdx
+                        ? 'bg-grayscale-400 dark:bg-grayscale-600'
+                        : 'bg-grayscale-200 dark:bg-grayscale-800'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Score & Minimal Combo Badge */}
+              <div className="flex items-center gap-3 shrink-0 text-xs font-serif">
+                {comboCount >= 2 && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="px-2 py-0.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white font-bold"
+                  >
+                    &times;{comboCount} Combo
+                  </motion.span>
+                )}
+                <span className="tabular-nums font-semibold text-grayscale-600 dark:text-grayscale-400">
+                  Score: {score}/{questions.length}
+                </span>
+              </div>
             </div>
 
-            {/* Score & Minimal Combo Badge */}
-            <div className="flex items-center gap-3 shrink-0 text-xs font-serif">
-              {comboCount >= 2 && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="px-2 py-0.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white font-bold"
-                >
-                  &times;{comboCount} Combo
-                </motion.span>
-              )}
-              <span className="tabular-nums font-semibold text-grayscale-600 dark:text-grayscale-400">
-                Score: {score}/{questions.length}
-              </span>
-            </div>
+            {/* Timed Sprint 15s Draining Progress Line */}
+            {timedSprintMode && !submitted && (
+              <div className="w-full bg-grayscale-100 dark:bg-grayscale-900 h-1 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-pure-black dark:bg-pure-white"
+                  initial={{ width: '100%' }}
+                  animate={{ width: `${(sprintTimeLeft / 15) * 100}%` }}
+                  transition={{ duration: 1, ease: 'linear' }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Floating +15 XP Dissolve Animation */}
@@ -241,8 +380,13 @@ export const QuizPage: React.FC = () => {
             >
               <Card padding="lg" className="space-y-8 hairline-border">
                 
-                <div className="text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
-                  Question 0{currentIdx + 1} of 0{questions.length}
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
+                  <span>Question 0{currentIdx + 1} of 0{questions.length}</span>
+                  {timedSprintMode && !submitted && (
+                    <span className="tabular-nums font-bold text-pure-black dark:text-pure-white">
+                      {sprintTimeLeft}s remaining
+                    </span>
+                  )}
                 </div>
 
                 {/* Question Title */}
@@ -280,9 +424,16 @@ export const QuizPage: React.FC = () => {
                         disabled={submitted}
                         whileHover={!submitted ? { scale: 1.01 } : undefined}
                         whileTap={!submitted ? { scale: 0.99 } : undefined}
+                        aria-label={`Option ${idx + 1}: ${option}`}
                         className={baseCardStyle}
                       >
-                        <span className="pr-4 leading-normal">{option}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs opacity-60 shrink-0 font-mono">
+                            {idx + 1}
+                          </span>
+                          <span className="leading-normal">{option}</span>
+                        </div>
+
                         {submitted && isCorrect && (
                           <motion.span 
                             initial={{ opacity: 0, scale: 0.5 }}
@@ -323,7 +474,10 @@ export const QuizPage: React.FC = () => {
                 )}
 
                 {/* Bottom Action Controls */}
-                <div className="flex justify-end pt-4 border-t border-grayscale-200 dark:border-grayscale-800">
+                <div className="flex justify-between items-center pt-4 border-t border-grayscale-200 dark:border-grayscale-800">
+                  <span className="text-[11px] text-grayscale-400">
+                    Use keys [1-4] or Enter
+                  </span>
                   {!submitted ? (
                     <Button
                       variant="primary"
@@ -331,7 +485,7 @@ export const QuizPage: React.FC = () => {
                       onClick={handleSubmitAnswer}
                       disabled={selectedOption === null}
                     >
-                      Submit Answer
+                      Submit Answer [Enter]
                     </Button>
                   ) : (
                     <Button
@@ -348,7 +502,7 @@ export const QuizPage: React.FC = () => {
           </AnimatePresence>
         </div>
       ) : (
-        /* QUIZ RESULTS SCREEN (APPLE REFRACTED CELEBRATION) */
+        /* QUIZ RESULTS SCREEN (APPLE REFRACTED CELEBRATION & MISTAKE ANALYSIS) */
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -374,7 +528,7 @@ export const QuizPage: React.FC = () => {
             <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full border border-grayscale-200 dark:border-grayscale-800 bg-grayscale-50 dark:bg-grayscale-950">
               <span className="text-xs uppercase tracking-widest text-grayscale-400">XP Earned</span>
               <span className="text-2xl font-bold text-pure-black dark:text-pure-white tabular-nums">
-                +{(score * 20) + (score === questions.length ? 50 : 25)} XP
+                +{(score * 20) + (score === questions.length ? 50 : 25) + (timedSprintMode ? 30 : 0)} XP
               </span>
             </div>
 
@@ -418,6 +572,65 @@ export const QuizPage: React.FC = () => {
               </Button>
             </div>
           </Card>
+
+          {/* INCORRECT ANSWERS & "DIG DEEPER" LLM MISCONCEPTION ANALYSIS */}
+          {incorrectAnswers.length > 0 && (
+            <Card padding="lg" className="space-y-6 hairline-border">
+              <div className="border-b border-grayscale-200 dark:border-grayscale-800 pb-3">
+                <h3 className="text-lg font-bold text-pure-black dark:text-pure-white tracking-tight">
+                  Incorrect Answers & Misconception Analysis
+                </h3>
+                <p className="text-xs text-grayscale-500 mt-1">
+                  Click "Dig deeper" for an instant AI breakdown of why your choice was incorrect.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {incorrectAnswers.map((item, idx) => (
+                  <div key={idx} className="p-5 rounded-xl border border-grayscale-200 dark:border-grayscale-800 space-y-3 bg-grayscale-50/50 dark:bg-grayscale-950/50">
+                    <div className="font-bold text-base text-pure-black dark:text-pure-white leading-snug">
+                      {item.question}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 rounded-lg border border-danger-light-border dark:border-danger-border bg-danger-light-bg dark:bg-danger-bg text-danger-light-text dark:text-red-400">
+                        <span className="font-semibold block text-[10px] uppercase">Your Answer</span>
+                        {item.userAns}
+                      </div>
+                      <div className="p-2.5 rounded-lg border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
+                        <span className="font-semibold block text-[10px] uppercase">Correct Answer</span>
+                        {item.correctAns}
+                      </div>
+                    </div>
+
+                    {/* Dig Deeper Action & LLM Result */}
+                    {!item.llmAnalysis ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={item.isAnalyzing}
+                        onClick={() => handleDigDeeper(item.questionId)}
+                      >
+                        {item.isAnalyzing ? 'Analyzing misconception...' : 'Dig deeper →'}
+                      </Button>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 rounded-xl border border-grayscale-300 dark:border-grayscale-700 bg-pure-white dark:bg-off-black text-xs text-pure-black dark:text-pure-white space-y-1 font-light leading-relaxed shadow-elevation-resting"
+                      >
+                        <span className="font-bold text-[10px] uppercase tracking-wider block text-grayscale-500">
+                          AI Tutor Insight
+                        </span>
+                        <p>{item.llmAnalysis}</p>
+                      </motion.div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
         </motion.div>
       )}
     </div>
