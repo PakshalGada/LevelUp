@@ -1,149 +1,180 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, BookOpen, CheckCircle, Zap, HelpCircle, RefreshCw, Clock } from 'lucide-react';
-import { Lesson } from '../types';
-import { fetchGeneratedLesson } from '../lib/api';
 import { useGameStore } from '../store/useGameStore';
+import { useContentStore } from '../store/useContentStore';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const LessonPage: React.FC = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const navigate = useNavigate();
   const { addXp, completeTopic } = useGameStore();
+  const { getContent, generateTopicContent, isGenerating, loadingStatus, error, clearError } = useContentStore();
 
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<boolean>(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const topicSlug = topicId || '';
+  const cachedContent = getContent(topicSlug);
+  const lesson = cachedContent?.lesson;
 
   useEffect(() => {
-    if (!topicId) return;
-
-    setLoading(true);
-    fetchGeneratedLesson(topicId)
-      .then((res) => {
-        setLesson(res.data);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError('Failed to fetch lesson from proxy endpoint.');
-      })
-      .finally(() => setLoading(false));
-  }, [topicId]);
+    if (!topicSlug) return;
+    if (!cachedContent && !isGenerating) {
+      // Uncached direct navigation to /lesson/:topicId — trigger generation
+      const readableTopic = topicSlug.replace(/-/g, ' ');
+      generateTopicContent(readableTopic).catch((err: any) => {
+        setLocalError(err.message || 'Failed to generate lesson.');
+      });
+    }
+  }, [topicSlug, cachedContent, isGenerating, generateTopicContent]);
 
   const handleCompleteLesson = () => {
     if (!lesson || completed) return;
-    addXp(lesson.xpReward);
+    addXp(lesson.xpReward || 100);
     if (topicId) completeTopic(topicId);
     setCompleted(true);
   };
 
-  if (loading) {
+  if (isGenerating || (!lesson && !error && !localError)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-12 h-12 rounded-full border-4 border-neon-cyan border-t-transparent animate-spin" />
-        <p className="text-slate-400 font-mono text-sm">Generating Lesson via Express Proxy Server...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6 font-serif text-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+          className="w-10 h-10 rounded-full border-2 border-grayscale-300 dark:border-grayscale-700 border-t-pure-black dark:border-t-pure-white"
+        />
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={loadingStatus}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="text-base font-semibold text-pure-black dark:text-pure-white tracking-tight"
+          >
+            {loadingStatus}
+          </motion.p>
+        </AnimatePresence>
+        <p className="text-xs text-grayscale-500">Generating lesson via Gemini LLM...</p>
       </div>
     );
   }
 
-  if (error || !lesson) {
+  if (error || localError || !lesson) {
     return (
-      <div className="glass-card max-w-xl mx-auto p-8 rounded-2xl text-center space-y-4">
-        <p className="text-red-400 font-semibold">{error || 'Lesson not found'}</p>
-        <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 bg-dark-700 rounded-lg text-sm font-bold text-white hover:bg-dark-600">
-          <ArrowLeft className="w-4 h-4" /> Back to Quests
-        </Link>
-      </div>
+      <Card padding="lg" className="max-w-xl mx-auto text-center space-y-4 font-serif">
+        <p className="text-danger-light-text dark:text-red-400 font-semibold text-base">
+          {error?.message || localError || 'Lesson content not found'}
+        </p>
+        <div className="flex justify-center gap-3 pt-2">
+          <Button variant="secondary" onClick={() => { clearError(); navigate('/'); }}>
+            Back to Home
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={() => { 
+              clearError(); 
+              setLocalError(null);
+              generateTopicContent(topicSlug.replace(/-/g, ' '));
+            }}
+          >
+            Try Re-generating
+          </Button>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      
+    <div className="max-w-4xl mx-auto space-y-8 font-serif">
       {/* Top Header */}
       <div className="flex items-center justify-between">
-        <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm font-semibold transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Topics
+        <Link 
+          to="/" 
+          className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white transition-colors"
+        >
+          &larr; Back to Topics
         </Link>
 
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-neon-green/10 text-neon-green border border-neon-green/30">
-            <Zap className="w-3.5 h-3.5" /> +{lesson.xpReward} XP
+        <div className="flex items-center gap-4 text-xs">
+          <span className="px-2.5 py-1 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white font-semibold">
+            +{lesson.xpReward || 100} XP
           </span>
-          <span className="flex items-center gap-1 text-xs text-slate-400">
-            <Clock className="w-3.5 h-3.5" /> {lesson.durationMinutes} min read
+          <span className="text-grayscale-400 font-serif">
+            {lesson.durationMinutes || 4} min read
           </span>
         </div>
       </div>
 
-      {/* Lesson Container */}
-      <motion.article
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card rounded-3xl p-8 sm:p-10 border border-dark-700/60 space-y-8"
-      >
-        <header className="space-y-4 border-b border-dark-700/60 pb-6">
-          <div className="inline-block px-3 py-1 rounded-md bg-neon-purple/10 border border-neon-purple/30 text-neon-purple text-xs font-mono font-bold uppercase">
-            Topic: {lesson.topicId}
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+      {/* Lesson Article */}
+      <Card padding="lg" className="space-y-8">
+        <header className="space-y-4 border-b border-grayscale-200 dark:border-grayscale-800 pb-6">
+          <span className="text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
+            Topic: {lesson.topicId || topicSlug}
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-bold text-pure-black dark:text-pure-white tracking-tight">
             {lesson.title}
           </h1>
-          <p className="text-slate-300 text-base leading-relaxed italic bg-dark-900/60 p-4 rounded-xl border border-dark-700">
+          <p className="text-grayscale-600 dark:text-grayscale-300 text-base leading-relaxed italic bg-grayscale-50 dark:bg-grayscale-950 p-4 rounded-xl border border-grayscale-200 dark:border-grayscale-800">
             "{lesson.summary}"
           </p>
         </header>
 
-        {/* Content Sections */}
-        <div className="space-y-6 text-slate-200 text-sm sm:text-base leading-relaxed">
-          {lesson.content.map((paragraph, index) => (
-            <p key={index} className="bg-dark-900/30 p-4 rounded-xl border border-dark-800">
-              {paragraph}
+        {/* Structured Lesson Sections */}
+        <div className="space-y-8">
+          {lesson.sections && lesson.sections.length > 0 ? (
+            lesson.sections.map((section, idx) => (
+              <section key={idx} className="space-y-3">
+                <h2 className="text-xl font-bold text-pure-black dark:text-pure-white tracking-tight">
+                  {section.heading}
+                </h2>
+                <p className="text-grayscale-800 dark:text-grayscale-200 text-base leading-relaxed whitespace-pre-line">
+                  {section.content}
+                </p>
+              </section>
+            ))
+          ) : (
+            <p className="text-grayscale-700 dark:text-grayscale-300 leading-relaxed">
+              No sections generated for this topic.
             </p>
-          ))}
+          )}
         </div>
 
         {/* Key Takeaways */}
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-dark-900 via-dark-850 to-dark-900 border border-neon-cyan/30 space-y-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-neon-cyan" /> Key Takeaways
-          </h3>
-          <ul className="space-y-2 text-sm text-slate-300">
-            {lesson.keyTakeaways.map((item, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <CheckCircle className="w-4 h-4 text-neon-green shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {lesson.keyTakeaways && lesson.keyTakeaways.length > 0 && (
+          <div className="p-6 rounded-xl border border-grayscale-200 dark:border-grayscale-800 bg-grayscale-50 dark:bg-grayscale-950 space-y-4">
+            <h3 className="text-base font-bold text-pure-black dark:text-pure-white">
+              Key Takeaways
+            </h3>
+            <ul className="space-y-2 text-sm text-grayscale-700 dark:text-grayscale-300">
+              {lesson.keyTakeaways.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-pure-black dark:text-pure-white font-bold">&bull;</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Action Controls */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-dark-700/60">
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-grayscale-200 dark:border-grayscale-800">
           {!completed ? (
-            <button
-              onClick={handleCompleteLesson}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-neon-green to-emerald-500 text-dark-950 font-extrabold text-sm hover:shadow-neon-green transition-all flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="w-5 h-5" /> Complete Lesson (+{lesson.xpReward} XP)
-            </button>
+            <Button variant="primary" onClick={handleCompleteLesson}>
+              Complete Lesson (+{lesson.xpReward || 100} XP)
+            </Button>
           ) : (
-            <div className="inline-flex items-center gap-2 text-neon-green font-bold text-sm bg-neon-green/10 px-4 py-2 rounded-xl border border-neon-green/30">
-              <CheckCircle className="w-5 h-5" /> XP Claimed! Lesson Completed
+            <div className="text-xs font-semibold px-3 py-1.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
+              &check; Lesson Completed (+{lesson.xpReward || 100} XP)
             </div>
           )}
 
-          <button
-            onClick={() => navigate(`/quiz/${topicId}`)}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-purple text-dark-950 font-extrabold text-sm hover:shadow-neon-cyan transition-all flex items-center justify-center gap-2"
-          >
-            <HelpCircle className="w-5 h-5" /> Take Quiz Challenge
-          </button>
+          <Button variant="secondary" onClick={() => navigate(`/quiz/${topicSlug}`)}>
+            Take Quiz Challenge &rarr;
+          </Button>
         </div>
-      </motion.article>
-
+      </Card>
     </div>
   );
 };

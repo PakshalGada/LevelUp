@@ -1,45 +1,52 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, XCircle, Award, Zap, HelpCircle } from 'lucide-react';
 import { QuizQuestion } from '../types';
 import { useGameStore } from '../store/useGameStore';
+import { useContentStore } from '../store/useContentStore';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 
-const MOCK_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
-  default: [
-    {
-      id: 'q1',
-      question: 'What is the primary benefit of modular architecture in software engineering?',
-      options: [
-        'It makes code run 100x faster automatically',
-        'It reduces cognitive load and allows isolated maintenance',
-        'It eliminates the need for database indexes',
-        'It prevents any type errors from occurring'
-      ],
-      correctAnswer: 1,
-      explanation: 'Modular design isolates concerns, making software easier to test, maintain, and scale.'
-    },
-    {
-      id: 'q2',
-      question: 'How does state synchronization improve user experience?',
-      options: [
-        'By avoiding page reloads and keeping UI responsive to changes',
-        'By storing user passwords in local storage',
-        'By converting all backend code to SQL queries',
-        'By removing CSS animations'
-      ],
-      correctAnswer: 0,
-      explanation: 'Predictable state flow ensures smooth, deterministic UI updates without unexpected race conditions.'
-    }
-  ]
-};
+const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 'q1',
+    question: 'What is the primary objective of active recall in learning?',
+    options: [
+      'Passively re-reading notes multiple times',
+      'Retrieving information from memory to strengthen neural pathways',
+      'Highlighting every sentence in a textbook',
+      'Listening to lectures at 2x speed'
+    ],
+    correctIndex: 1,
+    explanation: 'Active recall forces your brain to retrieve knowledge, which significantly improves long-term retention compared to passive review.'
+  },
+  {
+    id: 'q2',
+    question: 'Why is structured micro-learning effective?',
+    options: [
+      'It reduces cognitive overload by breaking complex concepts into digestible pieces',
+      'It eliminates the need to practice or solve exercises',
+      'It replaces deep study with superficial bullet points',
+      'It guarantees 100% test scores without effort'
+    ],
+    correctIndex: 0,
+    explanation: 'Bite-sized micro-lessons minimize cognitive load, allowing focused, high-retention learning sessions.'
+  }
+];
 
 export const QuizPage: React.FC = () => {
   const { topicId } = useParams<{ topicId: string }>();
   const navigate = useNavigate();
   const { addXp } = useGameStore();
+  const { getContent } = useContentStore();
 
-  const questions = MOCK_QUIZ_QUESTIONS[topicId || ''] || MOCK_QUIZ_QUESTIONS.default;
+  const topicSlug = topicId || '';
+  const cachedContent = getContent(topicSlug);
+
+  const questions: QuizQuestion[] = (cachedContent && cachedContent.quiz && cachedContent.quiz.length > 0)
+    ? cachedContent.quiz
+    : FALLBACK_QUIZ_QUESTIONS;
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -56,7 +63,8 @@ export const QuizPage: React.FC = () => {
   const handleSubmitAnswer = () => {
     if (selectedOption === null || submitted) return;
     setSubmitted(true);
-    if (selectedOption === currentQuestion.correctAnswer) {
+    const correctIdx = currentQuestion.correctIndex ?? currentQuestion.correctAnswer ?? 0;
+    if (selectedOption === correctIdx) {
       setScore((prev) => prev + 1);
     }
   };
@@ -74,56 +82,58 @@ export const QuizPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      
+    <div className="max-w-3xl mx-auto space-y-8 font-serif">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Link to={`/lesson/${topicId || ''}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm font-semibold">
-          <ArrowLeft className="w-4 h-4" /> Back to Lesson
+        <Link 
+          to={`/lesson/${topicSlug}`} 
+          className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white transition-colors"
+        >
+          &larr; Back to Lesson
         </Link>
         
-        <span className="text-xs font-mono text-neon-cyan px-3 py-1 bg-neon-cyan/10 border border-neon-cyan/30 rounded-full font-bold">
-          Quiz Challenge: {topicId}
+        <span className="text-xs font-semibold px-3 py-1 bg-grayscale-100 dark:bg-grayscale-900 border border-grayscale-200 dark:border-grayscale-800 rounded-full text-pure-black dark:text-pure-white">
+          Quiz Challenge: {topicSlug}
         </span>
       </div>
 
       {!quizFinished ? (
-        <motion.div
-          key={currentIdx}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="glass-card rounded-3xl p-8 border border-dark-700/60 space-y-8"
-        >
+        <Card padding="lg" className="space-y-8">
           {/* Question Counter */}
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-dark-700 pb-4">
-            <span>QUESTION {currentIdx + 1} OF {questions.length}</span>
-            <span className="text-neon-gold font-bold">Score: {score}</span>
+          <div className="flex items-center justify-between text-xs font-serif text-grayscale-500 border-b border-grayscale-200 dark:border-grayscale-800 pb-4">
+            <span className="uppercase tracking-widest">
+              QUESTION 0{currentIdx + 1} OF 0{questions.length}
+            </span>
+            <span className="font-bold text-pure-black dark:text-pure-white tabular-nums">
+              Score: {score}
+            </span>
           </div>
 
           {/* Question Title */}
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-pure-black dark:text-pure-white tracking-tight">
             {currentQuestion.question}
           </h2>
 
           {/* Options */}
           <div className="space-y-3">
             {currentQuestion.options.map((option, idx) => {
-              let isSelected = selectedOption === idx;
-              let isCorrect = idx === currentQuestion.correctAnswer;
+              const isSelected = selectedOption === idx;
+              const targetCorrectIndex = currentQuestion.correctIndex ?? currentQuestion.correctAnswer ?? 0;
+              const isCorrect = idx === targetCorrectIndex;
 
-              let btnClasses = "w-full text-left p-4 rounded-xl text-sm font-medium border transition-all duration-200 flex items-center justify-between ";
+              let optionClasses = "w-full text-left p-4 rounded-xl text-sm font-medium border transition-all duration-150 flex items-center justify-between ";
 
               if (!submitted) {
-                btnClasses += isSelected
-                  ? "bg-neon-cyan/15 border-neon-cyan text-white shadow-neon-cyan"
-                  : "bg-dark-900/60 border-dark-700 text-slate-300 hover:bg-dark-800 hover:border-slate-500";
+                optionClasses += isSelected
+                  ? "bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black border-pure-black dark:border-pure-white"
+                  : "bg-transparent border-grayscale-200 dark:border-grayscale-800 text-grayscale-800 dark:text-grayscale-200 hover:border-grayscale-400 dark:hover:border-grayscale-600";
               } else {
                 if (isCorrect) {
-                  btnClasses += "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold";
+                  optionClasses += "bg-grayscale-900 text-pure-white dark:bg-grayscale-100 dark:text-pure-black border-pure-black dark:border-pure-white font-semibold";
                 } else if (isSelected) {
-                  btnClasses += "bg-rose-500/20 border-rose-500 text-rose-300";
+                  optionClasses += "bg-danger-light-bg text-danger-light-text border-danger-light-border dark:bg-danger-bg dark:text-red-400 dark:border-danger-border";
                 } else {
-                  btnClasses += "bg-dark-900/40 border-dark-800 text-slate-500 opacity-60";
+                  optionClasses += "bg-transparent border-grayscale-200 dark:border-grayscale-800 text-grayscale-400 dark:text-grayscale-600 opacity-50";
                 }
               }
 
@@ -132,11 +142,11 @@ export const QuizPage: React.FC = () => {
                   key={idx}
                   onClick={() => handleSelectOption(idx)}
                   disabled={submitted}
-                  className={btnClasses}
+                  className={optionClasses}
                 >
-                  <span>{option}</span>
-                  {submitted && isCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
-                  {submitted && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+                  <span className="pr-4">{option}</span>
+                  {submitted && isCorrect && <span className="font-bold text-xs shrink-0">&check; Correct</span>}
+                  {submitted && isSelected && !isCorrect && <span className="font-bold text-xs shrink-0">&cross; Incorrect</span>}
                 </button>
               );
             })}
@@ -147,73 +157,62 @@ export const QuizPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="p-4 rounded-xl bg-dark-900 border border-dark-700 text-xs text-slate-300 space-y-1"
+              className="p-4 rounded-xl bg-grayscale-50 dark:bg-grayscale-950 border border-grayscale-200 dark:border-grayscale-800 text-xs text-grayscale-700 dark:text-grayscale-300 space-y-1"
             >
-              <div className="font-bold text-neon-cyan flex items-center gap-1">
-                <HelpCircle className="w-3.5 h-3.5" /> Explanation:
+              <div className="font-bold text-pure-black dark:text-pure-white">
+                Explanation:
               </div>
-              <p>{currentQuestion.explanation}</p>
+              <p className="leading-relaxed">{currentQuestion.explanation}</p>
             </motion.div>
           )}
 
           {/* Controls */}
-          <div className="flex justify-end pt-4 border-t border-dark-700">
+          <div className="flex justify-end pt-4 border-t border-grayscale-200 dark:border-grayscale-800">
             {!submitted ? (
-              <button
+              <Button
+                variant="primary"
                 onClick={handleSubmitAnswer}
                 disabled={selectedOption === null}
-                className="px-6 py-3 rounded-xl bg-neon-cyan text-dark-950 font-extrabold text-sm hover:shadow-neon-cyan disabled:opacity-40 transition-all"
               >
                 Submit Answer
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
+                variant="primary"
                 onClick={handleNextQuestion}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-purple to-neon-cyan text-dark-950 font-extrabold text-sm hover:shadow-neon-cyan transition-all"
               >
-                {currentIdx + 1 < questions.length ? 'Next Question →' : 'View Results 🏆'}
-              </button>
+                {currentIdx + 1 < questions.length ? 'Next Question →' : 'View Results'}
+              </Button>
             )}
           </div>
-        </motion.div>
+        </Card>
       ) : (
         /* Quiz Finished Screen */
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-card rounded-3xl p-10 text-center border border-neon-gold/40 space-y-6"
-        >
-          <div className="w-20 h-20 mx-auto rounded-full bg-neon-gold/10 border-2 border-neon-gold flex items-center justify-center text-neon-gold shadow-neon-gold">
-            <Award className="w-10 h-10 animate-bounce" />
+        <Card padding="lg" className="text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 flex items-center justify-center text-pure-black dark:text-pure-white font-bold text-xl">
+            &check;
           </div>
 
-          <h2 className="text-3xl font-extrabold text-white">Quiz Completed!</h2>
+          <h2 className="text-3xl font-bold text-pure-black dark:text-pure-white">Quiz Completed!</h2>
 
-          <p className="text-slate-300 text-base">
-            You scored <span className="font-extrabold text-neon-cyan">{score} / {questions.length}</span> correct answers!
+          <p className="text-grayscale-600 dark:text-grayscale-300 text-base">
+            You scored <span className="font-bold text-pure-black dark:text-pure-white tabular-nums">{score} / {questions.length}</span> correct answers.
           </p>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neon-green/10 border border-neon-green/30 text-neon-green font-bold text-sm">
-            <Zap className="w-4 h-4" /> Earned +{Math.round((score / questions.length) * 100) + 50} XP Bonus
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-grayscale-100 dark:bg-grayscale-900 border border-grayscale-200 dark:border-grayscale-800 text-pure-black dark:text-pure-white font-semibold text-sm">
+            Earned +{Math.round((score / questions.length) * 100) + 50} XP Bonus
           </div>
 
           <div className="pt-6 flex justify-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="px-6 py-3 rounded-xl bg-dark-700 text-white font-bold text-sm hover:bg-dark-600"
-            >
-              More Quests
-            </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-neon-gold to-orange-500 text-dark-950 font-extrabold text-sm hover:shadow-neon-gold"
-            >
-              View Dashboard & Badges
-            </button>
+            <Button variant="secondary" onClick={() => navigate('/')}>
+              More Topics
+            </Button>
+            <Button variant="primary" onClick={() => navigate('/dashboard')}>
+              View Dashboard
+            </Button>
           </div>
-        </motion.div>
+        </Card>
       )}
-
     </div>
   );
 };

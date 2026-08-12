@@ -1,31 +1,27 @@
 import React from 'react';
 import { Navbar } from './Navbar';
-import { motion } from 'framer-motion';
+import { PageTransition } from './ui/PageTransition';
 
-interface LayoutProps {
+export interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-dark-900 text-slate-100 selection:bg-neon-cyan selection:text-dark-950">
+    <div className="min-h-screen flex flex-col bg-pure-white dark:bg-pure-black text-pure-black dark:text-pure-white transition-colors duration-200 font-serif">
       <Navbar />
-      <motion.main
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      >
-        {children}
-      </motion.main>
-      
-      <footer className="border-t border-dark-800 py-6 text-center text-xs text-slate-500 glass-panel mt-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} LevelUp Platform. Gamified Micro-Learning Scaffold.</p>
-          <div className="flex gap-4">
-            <span className="hover:text-neon-cyan cursor-pointer transition-colors">Documentation</span>
-            <span className="hover:text-neon-cyan cursor-pointer transition-colors">API Proxy Status: Active</span>
+      <main className="flex-1 w-full max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 py-10 md:py-16">
+        <PageTransition>
+          {children}
+        </PageTransition>
+      </main>
+      <footer className="w-full border-t border-grayscale-200 dark:border-grayscale-800/80 py-8 px-6 sm:px-8 lg:px-12">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-grayscale-500 dark:text-grayscale-400 font-serif">
+          <span>LevelUp &copy; {new Date().getFullYear()} — Designed in Apple Monochrome Editorial Style</span>
+          <div className="flex items-center gap-6 text-grayscale-600 dark:text-grayscale-400">
+            <span>Precision Learning</span>
+            <span>&middot;</span>
+            <span>Minimalist Design</span>
           </div>
         </div>
       </footer>

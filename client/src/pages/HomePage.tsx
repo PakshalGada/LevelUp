@@ -1,218 +1,381 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  Code2, 
-  BrainCircuit, 
-  ShieldAlert, 
-  Cloud, 
-  Database, 
-  CheckCircle2, 
-  ArrowRight, 
-  Sparkles,
-  Server,
-  Zap,
-  BookOpen
-} from 'lucide-react';
-import { Topic } from '../types';
-import { checkServerHealth, fetchGeneratedLesson } from '../lib/api';
-
-const MOCK_TOPICS: Topic[] = [
-  {
-    id: 'web-dev-101',
-    title: 'React 19 & Modern UI State',
-    description: 'Master server components, custom hooks, and high-performance state management.',
-    category: 'web-dev',
-    level: 'Beginner',
-    xpReward: 150,
-    icon: 'Code2',
-    lessonsCount: 6,
-  },
-  {
-    id: 'ts-mastery',
-    title: 'TypeScript Type Gymnastics',
-    description: 'Generics, conditional types, mapped types, and strict type safety.',
-    category: 'web-dev',
-    level: 'Intermediate',
-    xpReward: 200,
-    icon: 'Code2',
-    lessonsCount: 8,
-  },
-  {
-    id: 'ai-prompting',
-    title: 'LLM Prompt Engineering',
-    description: 'Learn zero-shot, few-shot, and chain-of-thought techniques for LLM agents.',
-    category: 'ai-ml',
-    level: 'Intermediate',
-    xpReward: 250,
-    icon: 'BrainCircuit',
-    lessonsCount: 5,
-  },
-  {
-    id: 'sec-essentials',
-    title: 'Web Application Security',
-    description: 'OWASP Top 10, JWT security, XSS mitigation, and secure API architecture.',
-    category: 'cybersecurity',
-    level: 'Advanced',
-    xpReward: 300,
-    icon: 'ShieldAlert',
-    lessonsCount: 7,
-  },
-  {
-    id: 'cloud-microservices',
-    title: 'Cloud & Serverless Systems',
-    description: 'Containerization, Kubernetes basics, and event-driven architectures.',
-    category: 'cloud',
-    level: 'Advanced',
-    xpReward: 350,
-    icon: 'Cloud',
-    lessonsCount: 10,
-  },
-];
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { ProgressBar } from '../components/ui/ProgressBar';
+import { Badge } from '../components/ui/Badge';
+import { Avatar } from '../components/ui/Avatar';
+import { useGameStore } from '../store/useGameStore';
+import { useContentStore } from '../store/useContentStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const [serverStatus, setServerStatus] = useState<{ status: string; service: string } | null>(null);
-  const [testResponse, setTestResponse] = useState<any>(null);
-  const [loadingTest, setLoadingTest] = useState(false);
+  const { user } = useGameStore();
+  const { generateTopicContent, isGenerating, loadingStatus, error, clearError } = useContentStore();
 
-  useEffect(() => {
-    checkServerHealth().then(setServerStatus);
-  }, []);
+  const [topicInput, setTopicInput] = useState('');
+  const [badgeUnlocked, setBadgeUnlocked] = useState(true);
+  const [progressVal, setProgressVal] = useState(450);
 
-  const handleTestApiCall = async () => {
-    setLoadingTest(true);
+  const suggestedTopics = [
+    'Quantum Computing',
+    'Typography & Grid Systems',
+    'Neural Networks',
+    'Architecture History',
+    'System Design',
+  ];
+
+  const handleGenerate = async (topicToGenerate?: string) => {
+    const targetTopic = topicToGenerate || topicInput;
+    if (!targetTopic || !targetTopic.trim()) return;
+
     try {
-      const res = await fetchGeneratedLesson('web-dev-101', 'React 19 & Modern UI State');
-      setTestResponse(res);
-    } catch (err: any) {
-      setTestResponse({ error: err.message });
-    } finally {
-      setLoadingTest(false);
+      clearError();
+      const topicId = await generateTopicContent(targetTopic.trim());
+      navigate(`/lesson/${topicId}`);
+    } catch (err) {
+      console.error("Generation failed:", err);
     }
   };
 
   return (
-    <div className="space-y-10">
-      
-      {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-3xl glass-card p-8 sm:p-12 border border-dark-700/60 bg-gradient-to-r from-dark-850 via-dark-800 to-dark-900">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-neon-purple/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-64 h-64 bg-neon-cyan/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-24 relative">
 
-        <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5" /> Phase 0 Scaffold Active
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Level Up Your Tech Skills with <span className="text-gradient-cyan">Interactive Micro-Lessons</span>
-          </h1>
-
-          <p className="text-slate-300 text-lg leading-relaxed">
-            Choose a topic, absorb byte-sized insights, complete quick quizzes, gain XP, and climb the leaderboard!
-          </p>
-
-          {/* Express Backend Proxy Health Verification Banner */}
-          <div className="p-4 rounded-xl bg-dark-950/80 border border-dark-700/80 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Server className="w-5 h-5 text-neon-purple" />
-                <div>
-                  <div className="text-xs text-slate-400 font-mono">EXPRESS BACKEND PROXY</div>
-                  <div className="text-sm font-semibold text-white flex items-center gap-2">
-                    <span>Status: {serverStatus ? serverStatus.status.toUpperCase() : 'Checking...'}</span>
-                    <span className="w-2 h-2 rounded-full bg-neon-green animate-ping" />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleTestApiCall}
-                disabled={loadingTest}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan hover:bg-neon-cyan/30 transition-all flex items-center gap-2"
-              >
-                {loadingTest ? <Zap className="w-4 h-4 animate-spin" /> : <Server className="w-4 h-4" />}
-                Test POST /api/generate-lesson
-              </button>
-            </div>
-
-            {testResponse && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="p-3 bg-dark-900 rounded-lg border border-neon-green/30 text-xs font-mono text-slate-300 overflow-x-auto"
-              >
-                <div className="text-neon-green font-bold mb-1">✓ Verified Client-Server Response:</div>
-                <pre>{JSON.stringify(testResponse, null, 2)}</pre>
-              </motion.div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Topic Grid */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-neon-cyan" /> Available Quests & Topics
-            </h2>
-            <p className="text-sm text-slate-400">Select a quest to start generating micro-lessons and earning XP.</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_TOPICS.map((topic, index) => (
+      {/* LOADING OVERLAY / MODAL */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-pure-white/90 dark:bg-pure-black/90 backdrop-blur-md px-6 font-serif"
+          >
             <motion.div
-              key={topic.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.08 }}
-              className="glass-card rounded-2xl p-6 flex flex-col justify-between group relative overflow-hidden transition-all duration-300 hover:-translate-y-1"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="text-center space-y-6 max-w-sm mx-auto p-8 rounded-2xl border border-grayscale-200 dark:border-grayscale-800 bg-pure-white dark:bg-off-black shadow-elevation-hover"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className={`px-2.5 py-1 rounded-md text-xs font-bold font-mono border ${
-                    topic.level === 'Beginner' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                    topic.level === 'Intermediate' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' :
-                    'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                  }`}>
-                    {topic.level}
-                  </span>
-                  
-                  <span className="flex items-center gap-1 text-xs font-bold text-neon-green">
-                    +{topic.xpReward} XP
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-neon-cyan transition-colors">
-                    {topic.title}
-                  </h3>
-                  <p className="text-slate-400 text-xs mt-2 line-clamp-2 leading-relaxed">
-                    {topic.description}
-                  </p>
-                </div>
+              <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                  className="w-12 h-12 rounded-full border-2 border-grayscale-300 dark:border-grayscale-700 border-t-pure-black dark:border-t-pure-white"
+                />
               </div>
 
-              <div className="pt-6 mt-4 border-t border-dark-700/50 flex items-center justify-between">
-                <span className="text-xs text-slate-400">
-                  {topic.lessonsCount} Micro-lessons
-                </span>
-
-                <button
-                  onClick={() => navigate(`/lesson/${topic.id}`)}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-dark-700 group-hover:bg-gradient-to-r group-hover:from-neon-purple group-hover:to-neon-cyan group-hover:text-dark-950 text-white transition-all duration-200 flex items-center gap-1.5"
-                >
-                  Start Quest <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+              <div className="space-y-2">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={loadingStatus}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-base font-semibold text-pure-black dark:text-pure-white tracking-tight"
+                  >
+                    {loadingStatus}
+                  </motion.p>
+                </AnimatePresence>
+                <p className="text-xs text-grayscale-500 font-serif">
+                  Generating custom lesson & 5-question quiz via Gemini LLM
+                </p>
               </div>
             </motion.div>
-          ))}
-        </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 1. HERO SECTION */}
+      <section className="text-center space-y-8 py-12 md:py-20 max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="space-y-6"
+        >
+          <span className="inline-block text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 font-medium">
+            LLM-Powered Editorial Learning
+          </span>
+          
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tightest leading-[1.05] text-pure-black dark:text-pure-white">
+            Level up your learning.
+          </h1>
+
+          <p className="text-lg md:text-xl font-light text-grayscale-600 dark:text-grayscale-400 max-w-2xl mx-auto leading-relaxed">
+            Enter any topic to instantly generate a tailored micro-lesson and 5-question conceptual quiz powered by Google Gemini.
+          </p>
+        </motion.div>
+
+        {/* ERROR BANNER FOR BLOCKED / FAILED TOPICS */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="max-w-xl mx-auto p-4 rounded-xl border border-danger-light-border dark:border-danger-border bg-danger-light-bg dark:bg-danger-bg text-center space-y-2"
+            >
+              <p className="text-sm font-semibold text-danger-light-text dark:text-red-400">
+                {error.message}
+              </p>
+              <div className="flex justify-center gap-3 pt-1">
+                <button
+                  onClick={() => {
+                    clearError();
+                    setTopicInput('');
+                  }}
+                  className="text-xs font-serif underline text-grayscale-600 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white"
+                >
+                  Dismiss
+                </button>
+                {error.topic && (
+                  <button
+                    onClick={() => handleGenerate(error.topic)}
+                    className="text-xs font-serif font-bold underline text-pure-black dark:text-pure-white"
+                  >
+                    Try Again
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 2. TOPIC INPUT / SEARCH BAR */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-xl mx-auto space-y-5"
+        >
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleGenerate();
+            }} 
+            className="relative flex items-center bg-pure-white dark:bg-off-black rounded-full border border-grayscale-300 dark:border-grayscale-700 p-1.5 shadow-elevation-resting focus-within:border-pure-black dark:focus-within:border-pure-white transition-all duration-200"
+          >
+            <input
+              type="text"
+              value={topicInput}
+              onChange={(e) => {
+                setTopicInput(e.target.value);
+                if (error) clearError();
+              }}
+              placeholder="What would you like to learn today?"
+              className="w-full bg-transparent px-5 py-2.5 text-sm md:text-base text-pure-black dark:text-pure-white placeholder-grayscale-400 dark:placeholder-grayscale-600 focus:outline-none font-serif"
+              disabled={isGenerating}
+            />
+            <Button 
+              variant="primary" 
+              size="md" 
+              className="shrink-0 rounded-full"
+              disabled={isGenerating || !topicInput.trim()}
+              type="submit"
+            >
+              {isGenerating ? 'Generating...' : 'Generate'}
+            </Button>
+          </form>
+
+          {/* SUGGESTED TOPIC CHIPS */}
+          <div className="flex flex-wrap justify-center items-center gap-2 pt-2">
+            <span className="text-xs text-grayscale-400 dark:text-grayscale-600 mr-1">Suggestions:</span>
+            {suggestedTopics.map((topic) => (
+              <button
+                key={topic}
+                disabled={isGenerating}
+                onClick={() => {
+                  setTopicInput(topic);
+                  handleGenerate(topic);
+                }}
+                className="text-xs font-serif px-3 py-1 rounded-full border border-grayscale-200 dark:border-grayscale-800 text-grayscale-600 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white hover:border-grayscale-400 dark:hover:border-grayscale-600 hover:bg-grayscale-100/50 dark:hover:bg-grayscale-900/50 transition-all duration-150 disabled:opacity-50"
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+        </motion.div>
       </section>
 
+      {/* 3. USER STATS SUMMARY CARD */}
+      <section className="max-w-4xl mx-auto">
+        <Card padding="lg" className="hairline-border">
+          <div className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 font-medium mb-6">
+            Overview & Performance
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-grayscale-200 dark:divide-grayscale-800">
+            {/* Level */}
+            <div className="flex flex-col space-y-1">
+              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
+                Current Level
+              </span>
+              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
+                0{user.level}
+              </div>
+              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
+                Learner Status: Active
+              </span>
+            </div>
+
+            {/* Total XP */}
+            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8">
+              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
+                Experience (XP)
+              </span>
+              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
+                {user.currentXp}
+              </div>
+              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
+                Target: {user.nextLevelXp} XP
+              </span>
+            </div>
+
+            {/* Streak Days */}
+            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8">
+              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
+                Active Streak
+              </span>
+              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums flex items-baseline gap-2">
+                <span>{user.streakDays}</span>
+                <span className="text-lg font-light text-grayscale-400 dark:text-grayscale-500">Days</span>
+              </div>
+              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
+                Top 5% Consistency
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-grayscale-200 dark:border-grayscale-800/80">
+            <ProgressBar value={user.currentXp} max={user.nextLevelXp} label="Level 3 Progression" />
+          </div>
+        </Card>
+      </section>
+
+      {/* 4. DESIGN SYSTEM COMPONENT SHOWCASE */}
+      <section className="max-w-4xl mx-auto space-y-8">
+        <div className="border-b border-grayscale-200 dark:border-grayscale-800 pb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-pure-black dark:text-pure-white tracking-tight">
+            Design System Components
+          </h2>
+          <p className="text-sm text-grayscale-500 dark:text-grayscale-400 mt-1">
+            Monochrome, Apple-inspired editorial primitives and motion system.
+          </p>
+        </div>
+
+        {/* Buttons Grid */}
+        <Card hoverable padding="lg" className="space-y-6">
+          <h3 className="text-base font-semibold text-pure-black dark:text-pure-white border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
+            Button Variants & Sizes
+          </h3>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button variant="primary" size="lg">Primary Large</Button>
+            <Button variant="primary" size="md">Primary Medium</Button>
+            <Button variant="primary" size="sm">Primary Small</Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Button variant="secondary" size="md">Secondary Outline</Button>
+            <Button variant="ghost" size="md">Ghost Link</Button>
+            <Button variant="danger" size="md">Desaturated Danger</Button>
+          </div>
+        </Card>
+
+        {/* Badges & Unlocked Sheen */}
+        <Card hoverable padding="lg" className="space-y-6">
+          <div className="flex items-center justify-between border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
+            <div>
+              <h3 className="text-base font-semibold text-pure-black dark:text-pure-white">
+                Badges & Lock States
+              </h3>
+              <p className="text-xs text-grayscale-500 dark:text-grayscale-400">
+                Click to toggle unlocked sheen sweep animation.
+              </p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setBadgeUnlocked(!badgeUnlocked)}
+            >
+              Toggle State ({badgeUnlocked ? 'Unlocked' : 'Locked'})
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-4">
+            <Badge 
+              label="First Step" 
+              unlocked={badgeUnlocked} 
+              onClick={() => setBadgeUnlocked(!badgeUnlocked)} 
+            />
+            <Badge 
+              label="On Fire (3-Day)" 
+              unlocked={badgeUnlocked} 
+              onClick={() => setBadgeUnlocked(!badgeUnlocked)} 
+            />
+            <Badge 
+              label="Quiz Wizard" 
+              unlocked={false} 
+            />
+            <Badge 
+              label="Grandmaster" 
+              unlocked={false} 
+            />
+          </div>
+        </Card>
+
+        {/* Progress Bar & Interactive Counter */}
+        <Card hoverable padding="lg" className="space-y-6">
+          <div className="flex items-center justify-between border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
+            <h3 className="text-base font-semibold text-pure-black dark:text-pure-white">
+              Animated Progress Bar
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setProgressVal(Math.max(0, progressVal - 150))}
+              >
+                -150 XP
+              </Button>
+              <Button 
+                variant="primary" 
+                size="sm" 
+                onClick={() => setProgressVal(Math.min(1000, progressVal + 150))}
+              >
+                +150 XP
+              </Button>
+            </div>
+          </div>
+
+          <ProgressBar 
+            value={progressVal} 
+            max={1000} 
+            label="Module Master XP" 
+          />
+        </Card>
+
+        {/* Avatars */}
+        <Card hoverable padding="lg" className="space-y-6">
+          <h3 className="text-base font-semibold text-pure-black dark:text-pure-white border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
+            Avatar Variations
+          </h3>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Avatar initials="AP" size="lg" />
+              <span className="text-xs text-grayscale-500 font-serif">Large</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Avatar initials="LU" size="md" />
+              <span className="text-xs text-grayscale-500 font-serif">Medium</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Avatar initials="CL" size="sm" />
+              <span className="text-xs text-grayscale-500 font-serif">Small</span>
+            </div>
+          </div>
+        </Card>
+      </section>
     </div>
   );
 };

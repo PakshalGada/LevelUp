@@ -88,13 +88,25 @@ cp client/.env.example client/.env
 **Environment Variables:**
 - `server/.env`:
   - `PORT=3001`
-  - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (for upcoming LLM integrations)
+  - `GEMINI_API_KEY=your_gemini_api_key_here` (Get a free API key from [Google AI Studio](https://aistudio.google.com))
+  - `GEMINI_MODEL=gemini-2.5-flash` (Optional, defaults to `gemini-2.5-flash`)
 - `client/.env`:
   - `VITE_API_URL=http://localhost:3001`
 
 ---
 
-### 3. Running the Application
+### 3. Google Gemini API Setup (Free)
+
+1. Go to **[Google AI Studio](https://aistudio.google.com)**.
+2. Click **Create API key** to get a free Gemini API key.
+3. Paste your key into `server/.env`:
+   ```bash
+   GEMINI_API_KEY=AIzaSy...
+   ```
+
+---
+
+### 4. Running the Application
 
 #### Option A: Concurrently (Recommended)
 From the project root:
@@ -107,33 +119,21 @@ This starts both:
 - **Express Backend**: [http://localhost:3001](http://localhost:3001)
 - **Vite Frontend**: [http://localhost:5173](http://localhost:5173)
 
-#### Option B: Separate Terminals
-
-**Terminal 1 (Backend):**
-```bash
-cd server
-npm run dev
-```
-
-**Terminal 2 (Frontend):**
-```bash
-cd client
-npm run dev
-```
-
 ---
 
 ## 📡 API Endpoints
 
-- `POST /api/generate-lesson`
-  - **Body**: `{ "topicId": "web-dev-101", "topicTitle": "Web Development" }`
-  - **Returns**: Lesson object containing title, summary, key takeaways, and mock questions.
+- `POST /api/generate-content`
+  - **Body**: `{ "topic": "Quantum Computing" }`
+  - **Returns**: Schema-enforced JSON object with `{ lesson: { title, summary, sections, estimatedReadTime }, quiz: [ ... 5 questions ] }`.
 
 ---
 
 ## 🎮 Features Baseline
 
-- 🌌 **Gaming Dark Theme**: Dark navy background (`#0b0f19`), neon green (`#00ff9d`), cyan (`#00f0ff`), and gold (`#ffd700`) accents.
-- ⚡ **XP & Level Progress**: Global state managed via Zustand tracking XP, levels, and streaks.
-- 🏆 **Badges & Achievements**: Showcase unlocked achievements on the Dashboard.
+- 🖋️ **Monochrome Editorial Theme**: Apple-inspired minimalist design, Noto Serif typography, dark/light mode toggle.
+- ⚡ **Google Gemini LLM Power**: Real-time schema-enforced structured content generation for any topic.
+- 📊 **XP & Level Progress**: Global state managed via Zustand tracking XP, levels, and streaks.
+- 🏆 **Badges & Achievements**: Showcase unlocked achievements with sheen sweep animations.
 - 🔗 **Full Router Navigation**: Home (`/`), Lesson (`/lesson/:topicId`), Quiz (`/quiz/:topicId`), Dashboard (`/dashboard`), Leaderboard (`/leaderboard`).
+
