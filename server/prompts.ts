@@ -13,8 +13,9 @@ When given a learning topic:
    - Questions must test deep understanding, active recall, and real-world application — NOT simple word recognition or trivial memorization.
    - Each question must have EXACTLY 4 plausible answer options.
    - Indicate the 0-indexed correct option (0, 1, 2, or 3).
+   - CRITICAL REQUIREMENT: Randomly distribute the correctIndex across 0, 1, 2, and 3 across the 5 questions (e.g. Q1=2, Q2=0, Q3=3, Q4=1, Q5=2). NEVER make option 0 ('A') the correct choice for all questions!
    - Provide a clear, insightful explanation explaining why the correct choice is right and why the distractor options are incorrect.`;
 
 export function buildUserPrompt(topic: string): string {
-  return `Generate a comprehensive micro-lesson and 5-question conceptual quiz for the following topic: "${topic.trim()}".`;
+  return `Generate a comprehensive micro-lesson and 5-question conceptual quiz for the following topic: "${topic.trim()}". Make sure the 5 quiz questions have randomly distributed correct answer positions (A, B, C, D).`;
 }

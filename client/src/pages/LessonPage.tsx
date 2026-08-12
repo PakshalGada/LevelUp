@@ -4,6 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { useContentStore } from '../store/useContentStore';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { playClick } from '../lib/soundEffects';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const LessonPage: React.FC = () => {
@@ -38,7 +39,6 @@ export const LessonPage: React.FC = () => {
       if (totalHeight > 0) {
         const currentProgress = Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
         setScrollProgress(currentProgress);
-        // Show sticky CTA once scrolled through 50%+ of lesson
         if (currentProgress > 45) {
           setShowStickyCta(true);
         }
@@ -46,7 +46,7 @@ export const LessonPage: React.FC = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial check
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -62,6 +62,7 @@ export const LessonPage: React.FC = () => {
 
   const handleCompleteLesson = () => {
     if (!lesson || completed) return;
+    playClick();
     addXp(lesson.xpReward || 100);
     recordDailyActivity();
     setCompleted(true);
@@ -69,16 +70,17 @@ export const LessonPage: React.FC = () => {
 
   const handleReframe = (sectionIdx: number, style: 'Simpler' | 'Story form' | 'Exam-focused') => {
     if (!topicSlug) return;
+    playClick();
     reframeSection(topicSlug, sectionIdx, style);
   };
 
   if (isGenerating || (!lesson && !error && !localError)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6 font-serif text-center">
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6 font-hud text-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-          className="w-10 h-10 rounded-full border-2 border-grayscale-300 dark:border-grayscale-700 border-t-pure-black dark:border-t-pure-white"
+          className="w-12 h-12 clip-corner border-2 border-cyan-500/40 border-t-cyan-400 shadow-hud-cyan"
         />
         <AnimatePresence mode="wait">
           <motion.p
@@ -86,35 +88,37 @@ export const LessonPage: React.FC = () => {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            className="text-base font-semibold text-pure-black dark:text-pure-white tracking-tight"
+            className="text-sm font-bold text-cyan-300 tracking-wider uppercase"
           >
             {loadingStatus}
           </motion.p>
         </AnimatePresence>
-        <p className="text-xs text-grayscale-500">Generating structured lesson via Gemini LLM...</p>
+        <p className="text-[10px] text-slate-400 tracking-widest uppercase">
+          Synthesizing Neural Micro-Lesson via Gemini LLM
+        </p>
       </div>
     );
   }
 
   if (error || localError || !lesson) {
     return (
-      <Card padding="lg" className="max-w-xl mx-auto text-center space-y-4 font-serif">
-        <p className="text-danger-light-text dark:text-red-400 font-semibold text-base">
-          {error?.message || localError || 'Lesson content not found'}
+      <Card padding="lg" className="max-w-xl mx-auto text-center space-y-4 font-hud">
+        <p className="text-red-400 font-bold text-xs tracking-wider uppercase">
+          [ {error?.message || localError || 'LESSON DATA NOT FOUND'} ]
         </p>
         <div className="flex justify-center gap-3 pt-2">
           <Button variant="secondary" onClick={() => { clearError(); navigate('/'); }}>
-            Back to Home
+            BACK TO HOME
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={() => { 
-              clearError(); 
+          <Button
+            variant="primary"
+            onClick={() => {
+              clearError();
               setLocalError(null);
               generateTopicContent(topicSlug.replace(/-/g, ' '));
             }}
           >
-            Try Re-generating
+            RETRY GENERATION
           </Button>
         </div>
       </Card>
@@ -122,84 +126,85 @@ export const LessonPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10 font-serif relative pb-24">
-      {/* 1. SCROLL READING PROGRESS INDICATOR BAR */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-[2px] bg-grayscale-100 dark:bg-grayscale-900 pointer-events-none">
+    <div className="max-w-3xl mx-auto space-y-10 font-sans relative pb-24">
+      {/* 1. SCROLL READING PROGRESS HUD BAR */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-slate-950 pointer-events-none">
         <motion.div
-          className="h-full bg-pure-black dark:bg-pure-white"
+          className="h-full bg-gradient-to-r from-cyan-500 via-cyan-400 to-amber-400 shadow-hud-cyan"
           style={{ width: `${scrollProgress}%` }}
           transition={{ duration: 0.1, ease: 'easeOut' }}
         />
       </div>
 
       {/* Top Header Navigation */}
-      <div className="flex items-center justify-between pt-2">
-        <Link 
-          to="/" 
-          className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white transition-colors"
+      <div className="flex items-center justify-between pt-2 font-hud text-xs">
+        <Link
+          to="/"
+          onClick={playClick}
+          className="tracking-widest uppercase text-slate-400 hover:text-cyan-300 transition-colors"
         >
-          &larr; Back to Topics
+          &larr; BACK TO TOPICS
         </Link>
 
-        <div className="flex items-center gap-4 text-xs">
-          <span className="px-3 py-1 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white font-semibold">
-            +{lesson.xpReward || 100} XP
+        <div className="flex items-center gap-4">
+          <span className="px-3 py-1 clip-corner-sm border border-cyan-500/40 bg-slate-900/90 text-cyan-300 font-bold shadow-hud-cyan">
+            +{lesson.xpReward || 100} XP REWARD
           </span>
-          <span className="text-grayscale-400 font-serif">
-            {lesson.durationMinutes || 4} min read
+          <span className="text-slate-400 uppercase tracking-widest">
+            {lesson.durationMinutes || 4} MIN READ
           </span>
         </div>
       </div>
 
       {/* Main Lesson Content Area */}
       <div ref={articleRef} className="space-y-10">
-        <header className="space-y-4 border-b border-grayscale-200 dark:border-grayscale-800 pb-8">
-          <span className="text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
-            Topic: {lesson.topicId || topicSlug}
+        <header className="space-y-4 border-b border-cyan-500/30 pb-8">
+          <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-hud font-bold">
+            MODULE TOPIC: {lesson.topicId || topicSlug}
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-pure-black dark:text-pure-white tracking-tight leading-[1.1]">
+          <h1 className="text-4xl sm:text-5xl font-black font-hud text-slate-100 tracking-wider uppercase leading-tight drop-shadow-[0_0_15px_rgba(0,240,255,0.3)]">
             {lesson.title}
           </h1>
-          <p className="text-grayscale-600 dark:text-grayscale-300 text-lg leading-relaxed italic bg-grayscale-50 dark:bg-grayscale-950 p-6 rounded-2xl border border-grayscale-200 dark:border-grayscale-800">
+          <p className="text-slate-300 text-base md:text-lg leading-relaxed italic bg-slate-900/80 p-6 clip-corner border border-cyan-500/30 shadow-hud-cyan">
             "{lesson.summary}"
           </p>
         </header>
 
-        {/* Sections with Hairline Dividers & Section-Level "Explain it Differently" Controls */}
-        <div className="space-y-12">
+        {/* Sections with Angular Panels & Section-Level Reframing Controls */}
+        <div className="space-y-10">
           {lesson.sections.map((section, idx) => {
             const isReframingThis = reframingSectionIdx === idx;
             return (
-              <Card key={idx} padding="lg" className="space-y-6 relative overflow-hidden hairline-border">
-                
+              <Card key={idx} padding="lg" className="space-y-6 relative overflow-hidden">
+
                 {/* Section Shimmer Overlay during Reframing */}
                 {isReframingThis && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-20 bg-pure-white/80 dark:bg-pure-black/80 backdrop-blur-sm flex items-center justify-center"
+                    className="absolute inset-0 z-20 bg-slate-950/90 backdrop-blur-md flex items-center justify-center font-hud"
                   >
-                    <div className="flex items-center gap-3 text-xs font-semibold text-pure-black dark:text-pure-white">
+                    <div className="flex items-center gap-3 text-xs font-bold text-cyan-300 uppercase tracking-widest">
                       <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                        className="w-4 h-4 rounded-full border-2 border-grayscale-400 border-t-pure-black dark:border-t-pure-white"
+                        className="w-4 h-4 border-2 border-cyan-400 border-t-transparent clip-corner-sm"
                       />
-                      <span>Reframing section tone...</span>
+                      <span>REFRAMING NARRATIVE TONE...</span>
                     </div>
                   </motion.div>
                 )}
 
                 {/* Section Title & Reframe Controls */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-grayscale-100 dark:border-grayscale-800/60 pb-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-pure-black dark:text-pure-white tracking-tight">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cyan-500/20 pb-4">
+                  <h2 className="text-xl sm:text-2xl font-bold font-hud text-cyan-300 tracking-wider uppercase">
                     {section.heading}
                   </h2>
 
                   {/* Understated Apple Tone Controls */}
-                  <div className="flex items-center gap-1.5 bg-grayscale-100/70 dark:bg-grayscale-900/70 p-1 rounded-full border border-grayscale-200 dark:border-grayscale-800 shrink-0">
-                    <span className="text-[10px] text-grayscale-400 px-2 font-medium">Explain:</span>
+                  <div className="flex items-center gap-1.5 bg-slate-950/90 p-1.5 clip-corner-sm border border-cyan-500/30 shrink-0 font-hud">
+                    <span className="text-[9px] text-slate-400 px-2 font-bold tracking-widest uppercase">TONE:</span>
                     {(['Simpler', 'Story form', 'Exam-focused'] as const).map((style) => {
                       const isActive = section.activeStyle === style;
                       return (
@@ -207,11 +212,10 @@ export const LessonPage: React.FC = () => {
                           key={style}
                           disabled={isReframingThis}
                           onClick={() => handleReframe(idx, style)}
-                          className={`text-[11px] font-serif px-2.5 py-1 rounded-full transition-all duration-150 ${
-                            isActive
-                              ? 'bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black font-semibold shadow-elevation-resting'
-                              : 'text-grayscale-600 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white'
-                          }`}
+                          className={`text-[10px] tracking-wider uppercase px-2.5 py-1 clip-corner-sm transition-all duration-150 ${isActive
+                              ? 'bg-cyan-500 text-slate-950 font-bold shadow-hud-cyan'
+                              : 'text-slate-400 hover:text-cyan-300'
+                            }`}
                         >
                           {style}
                         </button>
@@ -221,14 +225,14 @@ export const LessonPage: React.FC = () => {
                 </div>
 
                 {/* Section Content Paragraph */}
-                <p className="text-grayscale-800 dark:text-grayscale-200 text-base md:text-lg leading-relaxed whitespace-pre-line font-light">
+                <p className="text-slate-200 text-base md:text-lg leading-relaxed whitespace-pre-line font-normal">
                   {section.content}
                 </p>
 
                 {section.activeStyle && (
-                  <div className="text-xs text-grayscale-400 font-serif italic pt-2 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-pure-black dark:bg-pure-white inline-block" />
-                    Reframed in "{section.activeStyle}" tone
+                  <div className="text-xs text-amber-400 font-hud tracking-wider uppercase pt-2 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-hud-gold inline-block" />
+                    Reframed in "{section.activeStyle.toUpperCase()}" tone
                   </div>
                 )}
               </Card>
@@ -238,15 +242,15 @@ export const LessonPage: React.FC = () => {
 
         {/* Key Takeaways Card */}
         {lesson.keyTakeaways && lesson.keyTakeaways.length > 0 && (
-          <Card padding="lg" className="space-y-4 bg-grayscale-50 dark:bg-grayscale-950 border border-grayscale-200 dark:border-grayscale-800">
-            <h3 className="text-base font-bold text-pure-black dark:text-pure-white tracking-tight">
-              Key Takeaways
+          <Card padding="lg" className="space-y-4">
+            <h3 className="text-sm font-bold font-hud text-cyan-300 tracking-widest uppercase">
+              KEY TAKEAWAYS & PROTOCOLS
             </h3>
-            <ul className="space-y-3 text-sm text-grayscale-700 dark:text-grayscale-300">
+            <ul className="space-y-3 text-sm text-slate-300">
               {lesson.keyTakeaways.map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-pure-black dark:bg-pure-white shrink-0 mt-2" />
-                  <span className="leading-relaxed">{item}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-hud-cyan shrink-0 mt-2" />
+                  <span className="leading-relaxed font-sans">{item}</span>
                 </li>
               ))}
             </ul>
@@ -254,19 +258,19 @@ export const LessonPage: React.FC = () => {
         )}
 
         {/* Inline Completion Section */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-grayscale-200 dark:border-grayscale-800">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-cyan-500/30">
           {!completed ? (
             <Button variant="primary" size="lg" onClick={handleCompleteLesson}>
-              Complete Lesson (+{lesson.xpReward || 100} XP)
+              COMPLETE LESSON (+{lesson.xpReward || 100} XP)
             </Button>
           ) : (
-            <div className="text-xs font-semibold px-4 py-2 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
-              &check; Lesson Completed (+{lesson.xpReward || 100} XP)
+            <div className="text-xs font-hud tracking-wider font-bold px-4 py-2 clip-corner-sm border border-cyan-400 bg-slate-900 text-cyan-300 shadow-hud-cyan">
+              ✓ LESSON COMPLETED (+{lesson.xpReward || 100} XP)
             </div>
           )}
 
-          <Button variant="secondary" size="lg" onClick={() => navigate(`/quiz/${topicSlug}`)}>
-            Start Quiz Challenge &rarr;
+          <Button variant="gold" size="lg" onClick={() => { playClick(); navigate(`/quiz/${topicSlug}`); }}>
+            START QUIZ CHALLENGE
           </Button>
         </div>
       </div>
@@ -280,14 +284,6 @@ export const LessonPage: React.FC = () => {
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
           >
-            <Button 
-              variant="primary" 
-              size="lg" 
-              onClick={() => navigate(`/quiz/${topicSlug}`)}
-              className="shadow-elevation-hover rounded-full px-8 py-3.5 border border-pure-white/20 dark:border-pure-black/20"
-            >
-              Start Quiz Challenge &rarr;
-            </Button>
           </motion.div>
         )}
       </AnimatePresence>

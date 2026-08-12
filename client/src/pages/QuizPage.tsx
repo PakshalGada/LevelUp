@@ -28,12 +28,12 @@ const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'q2',
     question: 'Why is structured micro-learning effective?',
     options: [
-      'It reduces cognitive overload by breaking complex concepts into digestible pieces',
       'It eliminates the need to practice or solve exercises',
       'It replaces deep study with superficial bullet points',
+      'It reduces cognitive overload by breaking complex concepts into digestible pieces',
       'It guarantees 100% test scores without effort'
     ],
-    correctIndex: 0,
+    correctIndex: 2,
     explanation: 'Bite-sized micro-lessons minimize cognitive load, allowing focused, high-retention learning sessions.'
   },
   {
@@ -41,11 +41,11 @@ const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
     question: 'Which principle best describes spaced repetition?',
     options: [
       'Cramming all study hours into a single overnight session',
-      'Reviewing material at increasing time intervals to interrupt forgetting',
       'Memorizing answers word-for-word without understanding',
-      'Reading multiple books simultaneously'
+      'Reading multiple books simultaneously',
+      'Reviewing material at increasing time intervals to interrupt forgetting'
     ],
-    correctIndex: 1,
+    correctIndex: 3,
     explanation: 'Spaced repetition aligns with the forgetting curve, reviewing concepts just before they fade to maximize retention.'
   },
   {
@@ -64,12 +64,12 @@ const FALLBACK_QUIZ_QUESTIONS: QuizQuestion[] = [
     id: 'q5',
     question: 'What is the ultimate goal of the Apple editorial learning philosophy?',
     options: [
-      'Promoting quiet, confident, and high-precision conceptual understanding',
       'Maximizing screen time through loud arcade animations',
       'Replacing human tutors with basic multiple choice forms',
+      'Promoting quiet, confident, and high-precision conceptual understanding',
       'Simplifying all complex subjects into single bullet points'
     ],
-    correctIndex: 0,
+    correctIndex: 2,
     explanation: 'Editorial design focuses on clarity, typography, and deliberate timing rather than noisy gamification gimmicks.'
   }
 ];
@@ -116,7 +116,7 @@ export const QuizPage: React.FC = () => {
   const startTimeRef = useRef<number>(Date.now());
   const currentQuestion = questions[currentIdx];
 
-  // Timed Sprint 15s per-question timer logic
+  // Timed Sprint 15s timer
   useEffect(() => {
     if (timedSprintMode && !submitted && !quizFinished) {
       setSprintTimeLeft(15);
@@ -126,7 +126,6 @@ export const QuizPage: React.FC = () => {
         setSprintTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(sprintTimerRef.current);
-            // Auto submit timed out question
             handleAutoSubmitTimeout();
             return 0;
           }
@@ -140,7 +139,7 @@ export const QuizPage: React.FC = () => {
     };
   }, [currentIdx, timedSprintMode, submitted, quizFinished]);
 
-  // Keyboard navigation shortcuts (1-4 keys & Enter)
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (quizFinished) return;
@@ -229,7 +228,6 @@ export const QuizPage: React.FC = () => {
       setSelectedOption(null);
       setSubmitted(false);
     } else {
-      // Quiz Finished
       const durationSeconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
       const totalEarnedXp = (score * 20) + (score === questions.length ? 50 : 25) + (timedSprintMode ? 30 : 0);
 
@@ -280,23 +278,24 @@ export const QuizPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 font-serif pb-16">
+    <div className="max-w-3xl mx-auto space-y-8 font-sans pb-16">
       {/* Top Navigation & Difficulty Badge */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between font-hud text-xs">
         <Link 
           to={`/lesson/${topicSlug}`} 
-          className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white transition-colors"
+          onClick={playClick}
+          className="tracking-widest uppercase text-slate-400 hover:text-cyan-300 transition-colors"
         >
-          &larr; Back to Lesson
+          &larr; BACK TO LESSON
         </Link>
         
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-serif text-grayscale-400 font-medium">
+          <span className="text-[10px] uppercase tracking-widest px-2.5 py-1 clip-corner-sm bg-slate-900 border border-cyan-500/30 text-cyan-300 font-bold">
             {difficultyLabel}
           </span>
           {timedSprintMode && (
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
-              Timed Sprint (15s)
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 clip-corner-sm border border-amber-500/40 bg-amber-500/10 text-amber-400 shadow-hud-gold">
+              TIMED SPRINT (15S)
             </span>
           )}
         </div>
@@ -305,47 +304,46 @@ export const QuizPage: React.FC = () => {
       {!quizFinished ? (
         <div className="space-y-8">
           
-          {/* 1. TOP 5-DASH PROGRESS SEGMENT LINE & TIMED DRAIN */}
+          {/* 1. TOP SEGMENTED PROGRESS BAR & TIMED DRAIN */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-3 font-hud">
               <div className="flex-1 flex items-center gap-2">
                 {questions.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                    className={`h-2 flex-1 clip-corner-sm transition-all duration-300 ${
                       idx === currentIdx
-                        ? 'bg-pure-black dark:bg-pure-white'
+                        ? 'bg-cyan-400 shadow-hud-cyan'
                         : idx < currentIdx
-                        ? 'bg-grayscale-400 dark:bg-grayscale-600'
-                        : 'bg-grayscale-200 dark:bg-grayscale-800'
+                        ? 'bg-slate-700 border border-slate-600'
+                        : 'bg-slate-900 border border-slate-800'
                     }`}
                   />
                 ))}
               </div>
 
-              {/* Score & Minimal Combo Badge */}
-              <div className="flex items-center gap-3 shrink-0 text-xs font-serif">
+              <div className="flex items-center gap-3 shrink-0 text-xs font-hud">
                 {comboCount >= 2 && (
                   <motion.span
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
-                    className="px-2 py-0.5 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white font-bold"
+                    className="px-2.5 py-0.5 clip-corner-sm border border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold"
                   >
-                    &times;{comboCount} Combo
+                    &times;{comboCount} COMBO
                   </motion.span>
                 )}
-                <span className="tabular-nums font-semibold text-grayscale-600 dark:text-grayscale-400">
-                  Score: {score}/{questions.length}
+                <span className="tabular-nums font-bold text-slate-300">
+                  SCORE: {score}/{questions.length}
                 </span>
               </div>
             </div>
 
-            {/* Timed Sprint 15s Draining Progress Line */}
+            {/* Timed Sprint 15s Draining Segment */}
             {timedSprintMode && !submitted && (
-              <div className="w-full bg-grayscale-100 dark:bg-grayscale-900 h-1 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-950 h-1.5 clip-corner-sm overflow-hidden border border-amber-500/30">
                 <motion.div
-                  className="h-full bg-pure-black dark:bg-pure-white"
+                  className="h-full bg-gradient-to-r from-amber-500 to-red-500 shadow-hud-gold"
                   initial={{ width: '100%' }}
                   animate={{ width: `${(sprintTimeLeft / 15) * 100}%` }}
                   transition={{ duration: 1, ease: 'linear' }}
@@ -362,14 +360,14 @@ export const QuizPage: React.FC = () => {
                 animate={{ opacity: 1, y: -24 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="absolute right-12 top-28 pointer-events-none text-sm font-bold text-pure-black dark:text-pure-white bg-grayscale-100 dark:bg-grayscale-900 px-3 py-1 rounded-full border border-grayscale-300 dark:border-grayscale-700 shadow-elevation-resting z-30"
+                className="absolute right-12 top-28 pointer-events-none text-xs font-hud font-bold text-cyan-300 bg-slate-900 px-3.5 py-1 clip-corner border border-cyan-400 shadow-hud-cyan z-30"
               >
                 +15 XP
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Single Question Container with Quick Apple Crossfade */}
+          {/* Single Question Container with Quick Sci-Fi Crossfade */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIdx}
@@ -378,42 +376,46 @@ export const QuizPage: React.FC = () => {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Card padding="lg" className="space-y-8 hairline-border">
+              <Card padding="lg" className="space-y-8">
                 
-                <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
-                  <span>Question 0{currentIdx + 1} of 0{questions.length}</span>
+                {/* QUESTION TAG TOP-LEFT & GOLD NUMERAL */}
+                <div className="flex items-center justify-between text-xs font-hud font-bold tracking-widest text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shadow-hud-gold" />
+                    <span className="text-amber-400">QUESTION 0{currentIdx + 1} OF 0{questions.length}</span>
+                  </div>
                   {timedSprintMode && !submitted && (
-                    <span className="tabular-nums font-bold text-pure-black dark:text-pure-white">
-                      {sprintTimeLeft}s remaining
+                    <span className="tabular-nums font-bold text-amber-400 shadow-hud-gold">
+                      {sprintTimeLeft}S REMAINING
                     </span>
                   )}
                 </div>
 
                 {/* Question Title */}
-                <h2 className="text-2xl sm:text-3xl font-bold text-pure-black dark:text-pure-white tracking-tight leading-snug">
+                <h2 className="text-2xl sm:text-3xl font-black font-hud text-slate-100 tracking-wider leading-snug">
                   {currentQuestion.question}
                 </h2>
 
-                {/* 4 Option Minimal Cards */}
+                {/* 4 Option Angular Rows */}
                 <div className="space-y-3.5 pt-2">
                   {currentQuestion.options.map((option, idx) => {
                     const isSelected = selectedOption === idx;
                     const targetCorrectIndex = currentQuestion.correctIndex ?? currentQuestion.correctAnswer ?? 0;
                     const isCorrect = idx === targetCorrectIndex;
 
-                    let baseCardStyle = "w-full text-left p-5 rounded-xl text-base font-serif transition-all duration-200 flex items-center justify-between border cursor-pointer select-none ";
+                    let baseCardStyle = "w-full text-left p-5 clip-corner text-sm font-hud tracking-wider transition-all duration-200 flex items-center justify-between border cursor-pointer select-none ";
 
                     if (!submitted) {
                       baseCardStyle += isSelected
-                        ? "bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black border-pure-black dark:border-pure-white shadow-elevation-resting"
-                        : "bg-transparent border-grayscale-200 dark:border-grayscale-800 text-grayscale-800 dark:text-grayscale-200 hover:border-grayscale-400 dark:hover:border-grayscale-600 hover:bg-grayscale-50 dark:hover:bg-grayscale-950";
+                        ? "bg-cyan-500 text-slate-950 border-cyan-300 shadow-hud-cyan-lg font-bold"
+                        : "bg-slate-950/80 border-cyan-500/20 text-slate-200 hover:border-cyan-400 hover:shadow-hud-cyan hover:bg-slate-900";
                     } else {
                       if (isCorrect) {
-                        baseCardStyle += "bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black border-pure-black dark:border-pure-white font-semibold scale-[1.01]";
+                        baseCardStyle += "bg-emerald-950/90 text-emerald-300 border-emerald-400 shadow-hud-green font-bold scale-[1.01]";
                       } else if (isSelected) {
-                        baseCardStyle += "bg-danger-light-bg text-danger-light-text border-danger-light-border dark:bg-danger-bg dark:text-red-400 dark:border-danger-border";
+                        baseCardStyle += "bg-red-950/90 text-red-300 border-red-500 shadow-hud-red";
                       } else {
-                        baseCardStyle += "bg-transparent border-grayscale-200 dark:border-grayscale-800 text-grayscale-400 dark:text-grayscale-600 opacity-40";
+                        baseCardStyle += "bg-slate-950/40 border-slate-800 text-slate-600 opacity-40";
                       }
                     }
 
@@ -428,28 +430,28 @@ export const QuizPage: React.FC = () => {
                         className={baseCardStyle}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs opacity-60 shrink-0 font-mono">
-                            {idx + 1}
+                          <span className="w-6 h-6 clip-corner-sm border border-current flex items-center justify-center text-xs font-mono shrink-0">
+                            0{idx + 1}
                           </span>
-                          <span className="leading-normal">{option}</span>
+                          <span className="leading-normal font-sans font-medium text-base">{option}</span>
                         </div>
 
                         {submitted && isCorrect && (
                           <motion.span 
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="font-bold text-xs shrink-0 flex items-center gap-1"
+                            className="font-bold text-xs shrink-0 flex items-center gap-1 text-emerald-400"
                           >
-                            &check; Correct
+                            ✓ CORRECT
                           </motion.span>
                         )}
                         {submitted && isSelected && !isCorrect && (
                           <motion.span 
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="font-bold text-xs shrink-0 flex items-center gap-1"
+                            className="font-bold text-xs shrink-0 flex items-center gap-1 text-red-400"
                           >
-                            &cross; Incorrect
+                            💀 INCORRECT
                           </motion.span>
                         )}
                       </motion.button>
@@ -462,21 +464,21 @@ export const QuizPage: React.FC = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-5 rounded-xl bg-grayscale-50 dark:bg-grayscale-950 border border-grayscale-200 dark:border-grayscale-800 space-y-1.5"
+                    className="p-5 clip-corner bg-slate-950 border border-cyan-500/30 space-y-2 font-sans"
                   >
-                    <div className="text-xs font-bold text-pure-black dark:text-pure-white uppercase tracking-wider">
-                      Explanation
+                    <div className="text-xs font-hud font-bold text-cyan-300 uppercase tracking-widest">
+                      SYSTEM ANALYSIS & EXPLANATION
                     </div>
-                    <p className="text-sm text-grayscale-700 dark:text-grayscale-300 font-light leading-relaxed">
+                    <p className="text-sm text-slate-300 font-normal leading-relaxed">
                       {currentQuestion.explanation}
                     </p>
                   </motion.div>
                 )}
 
                 {/* Bottom Action Controls */}
-                <div className="flex justify-between items-center pt-4 border-t border-grayscale-200 dark:border-grayscale-800">
-                  <span className="text-[11px] text-grayscale-400">
-                    Use keys [1-4] or Enter
+                <div className="flex justify-between items-center pt-4 border-t border-cyan-500/20 font-hud">
+                  <span className="text-[10px] text-slate-500 tracking-wider">
+                    SHORTCUTS: KEYS [1-4] OR ENTER
                   </span>
                   {!submitted ? (
                     <Button
@@ -485,7 +487,7 @@ export const QuizPage: React.FC = () => {
                       onClick={handleSubmitAnswer}
                       disabled={selectedOption === null}
                     >
-                      Submit Answer [Enter]
+                      SUBMIT ANSWER [ENTER]
                     </Button>
                   ) : (
                     <Button
@@ -493,7 +495,7 @@ export const QuizPage: React.FC = () => {
                       size="lg"
                       onClick={handleNextQuestion}
                     >
-                      {currentIdx + 1 < questions.length ? 'Next Question →' : 'View Results & Reward'}
+                      {currentIdx + 1 < questions.length ? 'NEXT QUESTION →' : 'VIEW RESULTS & REWARD'}
                     </Button>
                   )}
                 </div>
@@ -502,108 +504,105 @@ export const QuizPage: React.FC = () => {
           </AnimatePresence>
         </div>
       ) : (
-        /* QUIZ RESULTS SCREEN (APPLE REFRACTED CELEBRATION & MISTAKE ANALYSIS) */
+        /* QUIZ RESULTS SCREEN (SCI-FI HUD CELEBRATION & MISTAKE ANALYSIS) */
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-8"
         >
-          <Card padding="lg" className="text-center space-y-8 hairline-border">
+          <Card padding="lg" className="text-center space-y-8">
             
-            {/* Score Summary as Large Serif Numeral */}
-            <div className="space-y-2">
-              <span className="text-xs uppercase tracking-widest text-grayscale-400 font-medium">
-                Correct Answers
+            {/* Score Summary */}
+            <div className="space-y-2 font-hud">
+              <span className="text-xs uppercase tracking-widest text-cyan-400 font-bold">
+                MISSION RECALL ACCURACY
               </span>
-              <div className="text-6xl sm:text-7xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
+              <div className="text-6xl sm:text-7xl font-black tracking-wider text-slate-100 tabular-nums drop-shadow-[0_0_20px_rgba(0,240,255,0.4)]">
                 {score}/{questions.length}
               </div>
-              <p className="text-sm font-light text-grayscale-500">
-                {score === questions.length ? 'Flawless execution & perfect recall.' : 'Solid effort. Review explanations to solidify memory.'}
+              <p className="text-xs font-sans text-slate-400">
+                {score === questions.length ? 'Flawless recall execution. All neural pathways verified.' : 'Solid performance. Review mistake analysis below.'}
               </p>
             </div>
 
             {/* Total XP Earned */}
-            <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full border border-grayscale-200 dark:border-grayscale-800 bg-grayscale-50 dark:bg-grayscale-950">
-              <span className="text-xs uppercase tracking-widest text-grayscale-400">XP Earned</span>
-              <span className="text-2xl font-bold text-pure-black dark:text-pure-white tabular-nums">
+            <div className="inline-flex items-center gap-3 px-6 py-2.5 clip-corner border border-amber-500/40 bg-slate-900 shadow-hud-gold">
+              <span className="text-xs font-hud uppercase tracking-widest text-amber-400">XP REWARD</span>
+              <span className="text-2xl font-black font-hud text-amber-400 tabular-nums">
                 +{(score * 20) + (score === questions.length ? 50 : 25) + (timedSprintMode ? 30 : 0)} XP
               </span>
             </div>
 
             {/* Level & Animated XP Bar */}
             <div className="max-w-md mx-auto space-y-2 pt-2">
-              <ProgressBar value={user.currentXp} max={user.nextLevelXp} label={`Level ${user.level} Progress`} />
+              <ProgressBar value={user.currentXp} max={user.nextLevelXp} label={`RANK LEVEL ${user.level} PROGRESS`} />
             </div>
 
-            {/* Newly Unlocked Badges (Revealed with calm scale/fade-in + sheen sweep) */}
+            {/* Newly Unlocked Badges */}
             {unlockedBadgesToReveal.length > 0 && (
-              <div className="pt-4 space-y-3 border-t border-grayscale-200 dark:border-grayscale-800">
-                <div className="text-xs uppercase tracking-widest text-grayscale-400 font-semibold">
-                  New Achievement Unlocked
+              <div className="pt-4 space-y-3 border-t border-cyan-500/20 font-hud">
+                <div className="text-xs uppercase tracking-widest text-amber-400 font-bold">
+                  NEW ARTIFACT EMBLEM UNLOCKED
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
                   {unlockedBadgesToReveal.map((b) => (
-                    <Badge key={b.id} label={b.title} unlocked size="lg" />
+                    <Badge key={b.id} label={b.title} unlocked size="lg" icon={b.icon} />
                   ))}
                 </div>
               </div>
             )}
 
             {/* Streak Status */}
-            <div className="pt-4 flex items-center justify-center gap-3 text-sm text-pure-black dark:text-pure-white">
-              <svg className="w-4 h-4 stroke-current fill-none" viewBox="0 0 24 24" strokeWidth="1.75">
-                <path d="M12 2c1 3 2.5 3.5 3.5 5.5 1 2 1.5 3.5 1.5 5.5A7 7 0 115 13c0-3 1.5-5.5 3-7.5 1-1.33 2-2.5 4-3.5z" />
-              </svg>
-              <span className="font-semibold tabular-nums">{user.streakDays} Day Streak Active</span>
+            <div className="pt-4 flex items-center justify-center gap-3 text-xs font-hud text-slate-200">
+              <span className="text-amber-400 text-base">🔥</span>
+              <span className="font-bold tracking-widest">{user.streakDays} DAY NEURAL STREAK ACTIVE</span>
             </div>
 
             {/* Action CTAs */}
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="primary" size="lg" onClick={() => navigate('/')}>
-                Try Another Topic
+              <Button variant="primary" size="lg" onClick={() => { playClick(); navigate('/'); }}>
+                TRY ANOTHER TOPIC
               </Button>
               <Button variant="secondary" size="lg" onClick={handleRestartQuiz}>
-                Retry Quiz
+                RETRY QUIZ
               </Button>
-              <Button variant="ghost" size="lg" onClick={() => navigate('/dashboard')}>
-                View Dashboard
+              <Button variant="ghost" size="lg" onClick={() => { playClick(); navigate('/dashboard'); }}>
+                VIEW COMMAND CENTER
               </Button>
             </div>
           </Card>
 
           {/* INCORRECT ANSWERS & "DIG DEEPER" LLM MISCONCEPTION ANALYSIS */}
           {incorrectAnswers.length > 0 && (
-            <Card padding="lg" className="space-y-6 hairline-border">
-              <div className="border-b border-grayscale-200 dark:border-grayscale-800 pb-3">
-                <h3 className="text-lg font-bold text-pure-black dark:text-pure-white tracking-tight">
-                  Incorrect Answers & Misconception Analysis
+            <Card padding="lg" className="space-y-6">
+              <div className="border-b border-cyan-500/20 pb-3 font-hud">
+                <h3 className="text-lg font-bold text-cyan-300 tracking-wider uppercase">
+                  MISTAKE DIAGNOSTICS & NEURAL ANALYSIS
                 </h3>
-                <p className="text-xs text-grayscale-500 mt-1">
-                  Click "Dig deeper" for an instant AI breakdown of why your choice was incorrect.
+                <p className="text-xs font-sans text-slate-400 mt-1">
+                  Click "DIG DEEPER" for an instant AI breakdown of why your choice was incorrect.
                 </p>
               </div>
 
               <div className="space-y-6">
                 {incorrectAnswers.map((item, idx) => (
-                  <div key={idx} className="p-5 rounded-xl border border-grayscale-200 dark:border-grayscale-800 space-y-3 bg-grayscale-50/50 dark:bg-grayscale-950/50">
-                    <div className="font-bold text-base text-pure-black dark:text-pure-white leading-snug">
+                  <div key={idx} className="p-5 clip-corner border border-cyan-500/30 space-y-3 bg-slate-950">
+                    <div className="font-bold text-base font-hud text-slate-100 leading-snug">
                       {item.question}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5 rounded-lg border border-danger-light-border dark:border-danger-border bg-danger-light-bg dark:bg-danger-bg text-danger-light-text dark:text-red-400">
-                        <span className="font-semibold block text-[10px] uppercase">Your Answer</span>
-                        {item.userAns}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-hud">
+                      <div className="p-2.5 clip-corner-sm border border-red-500/40 bg-red-950/80 text-red-300">
+                        <span className="font-bold block text-[9px] uppercase tracking-widest">SELECTED ANSWER</span>
+                        <span className="font-sans">{item.userAns}</span>
                       </div>
-                      <div className="p-2.5 rounded-lg border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-pure-black dark:text-pure-white">
-                        <span className="font-semibold block text-[10px] uppercase">Correct Answer</span>
-                        {item.correctAns}
+                      <div className="p-2.5 clip-corner-sm border border-emerald-500/40 bg-emerald-950/80 text-emerald-300">
+                        <span className="font-bold block text-[9px] uppercase tracking-widest">CORRECT ANSWER</span>
+                        <span className="font-sans">{item.correctAns}</span>
                       </div>
                     </div>
 
-                    {/* Dig Deeper Action & LLM Result */}
                     {!item.llmAnalysis ? (
                       <Button
                         variant="ghost"
@@ -611,16 +610,16 @@ export const QuizPage: React.FC = () => {
                         disabled={item.isAnalyzing}
                         onClick={() => handleDigDeeper(item.questionId)}
                       >
-                        {item.isAnalyzing ? 'Analyzing misconception...' : 'Dig deeper →'}
+                        {item.isAnalyzing ? 'ANALYZING MISCONCEPTION...' : 'DIG DEEPER →'}
                       </Button>
                     ) : (
                       <motion.div
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-4 rounded-xl border border-grayscale-300 dark:border-grayscale-700 bg-pure-white dark:bg-off-black text-xs text-pure-black dark:text-pure-white space-y-1 font-light leading-relaxed shadow-elevation-resting"
+                        className="p-4 clip-corner border border-cyan-400 bg-slate-900 text-xs text-slate-200 space-y-1 font-sans leading-relaxed shadow-hud-cyan"
                       >
-                        <span className="font-bold text-[10px] uppercase tracking-wider block text-grayscale-500">
-                          AI Tutor Insight
+                        <span className="font-hud font-bold text-[10px] uppercase tracking-widest text-cyan-300 block">
+                          AI TUTOR MISCONCEPTION ANALYSIS
                         </span>
                         <p>{item.llmAnalysis}</p>
                       </motion.div>

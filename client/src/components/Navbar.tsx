@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useGameStore } from '../store/useGameStore';
-import { useTheme } from '../store/useTheme';
 import { isSoundMuted, setSoundMuted, playClick } from '../lib/soundEffects';
 import { Avatar } from './ui/Avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Navbar: React.FC = () => {
   const { user, streakFreezes } = useGameStore();
-  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
 
   const [muted, setMutedState] = useState<boolean>(isSoundMuted());
@@ -22,23 +20,24 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = [
-    { path: '/', label: 'Home' },
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/leaderboard', label: 'Leaderboard' },
+    { path: '/', label: 'HOME' },
+    { path: '/dashboard', label: 'DASHBOARD' },
+    { path: '/leaderboard', label: 'LEADERBOARD' },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-pure-white/80 dark:bg-pure-black/80 backdrop-blur-md border-b border-grayscale-200 dark:border-grayscale-800/80 transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-slate-950/85 backdrop-blur-md border-b border-cyan-500/30 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
         
         {/* Brand Wordmark Logo */}
         <div className="flex items-center gap-8">
           <Link 
             to="/" 
             onClick={() => { playClick(); setMobileMenuOpen(false); }}
-            className="font-serif font-bold text-xl tracking-tight text-pure-black dark:text-pure-white hover:opacity-80 transition-opacity"
+            className="font-hud font-extrabold text-xl tracking-wider text-cyan-400 hover:text-cyan-300 transition-opacity flex items-center gap-2 drop-shadow-[0_0_10px_rgba(0,240,255,0.6)]"
           >
-            LevelUp
+            <span className="w-2.5 h-2.5 bg-cyan-400 clip-corner-sm animate-pulse" />
+            LEVELUP
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -50,17 +49,17 @@ export const Navbar: React.FC = () => {
                   key={link.path}
                   to={link.path}
                   onClick={playClick}
-                  className={`relative font-serif text-sm font-medium transition-colors duration-150 py-1 ${
+                  className={`relative font-hud text-xs tracking-widest font-semibold transition-colors duration-150 py-1 ${
                     isActive
-                      ? 'text-pure-black dark:text-pure-white'
-                      : 'text-grayscale-500 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white'
+                      ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]'
+                      : 'text-slate-400 hover:text-cyan-400'
                   }`}
                 >
                   {link.label}
                   {isActive && (
                     <motion.div
                       layoutId="nav-underline"
-                      className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-pure-black dark:bg-pure-white"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-cyan-400 shadow-hud-cyan"
                       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
@@ -70,34 +69,25 @@ export const Navbar: React.FC = () => {
           </nav>
         </div>
 
-        {/* Right Section: Level Chip, Streak, Sound Toggle, Theme Toggle, Avatar */}
+        {/* Right Section: Level Chip, XP StatBar, Streak, Sound Toggle, Avatar */}
         <div className="flex items-center gap-2.5 sm:gap-4">
           
           {/* Level XP Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-grayscale-200 dark:border-grayscale-800 bg-grayscale-100/60 dark:bg-grayscale-900/60 text-xs font-serif text-grayscale-900 dark:text-grayscale-100 shadow-elevation-resting">
-            <span className="w-2 h-2 rounded-full bg-pure-black dark:bg-pure-white" />
-            <span className="font-semibold">Level {user.level}</span>
-            <span className="text-grayscale-400 dark:text-grayscale-600 hidden sm:inline">|</span>
-            <span className="tabular-nums text-grayscale-600 dark:text-grayscale-400 hidden sm:inline">{user.currentXp} XP</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 clip-corner-sm border border-cyan-500/40 bg-slate-900/90 text-xs font-hud text-cyan-300 shadow-hud-cyan">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-hud-cyan" />
+            <span className="font-bold">LVL {user.level}</span>
+            <span className="text-slate-600 hidden sm:inline">|</span>
+            <span className="tabular-nums text-slate-300 hidden sm:inline">{user.currentXp} XP</span>
           </div>
 
           {/* Streak Flame Badge */}
           <div 
-            title={streakFreezes > 0 ? `${streakFreezes} Streak Freeze Available` : undefined}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-grayscale-200 dark:border-grayscale-800 bg-transparent text-xs font-serif text-pure-black dark:text-pure-white"
+            title={streakFreezes > 0 ? `${streakFreezes} Streak Freeze Protection` : undefined}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 clip-corner-sm border border-amber-500/40 bg-slate-900/90 text-xs font-hud text-amber-400 shadow-hud-gold"
           >
-            <svg 
-              className="w-3.5 h-3.5 stroke-pure-black dark:stroke-pure-white fill-none" 
-              viewBox="0 0 24 24" 
-              strokeWidth="1.75" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <path d="M8.5 14.5A2.5 2.5 0 0011 17c1.38 0 2.5-1.12 2.5-2.5 0-1.99-1.5-2.8-2-4.5-.47 1.7-2 2.51-2 4.5z" />
-              <path d="M12 2c1 3 2.5 3.5 3.5 5.5 1 2 1.5 3.5 1.5 5.5A7 7 0 115 13c0-3 1.5-5.5 3-7.5 1-1.33 2-2.5 4-3.5z" />
-            </svg>
-            <span className="tabular-nums font-semibold">{user.streakDays}</span>
-            {streakFreezes > 0 && <span className="text-[10px] opacity-60">❄️</span>}
+            <span className="text-amber-400">🔥</span>
+            <span className="tabular-nums font-bold">{user.streakDays}D</span>
+            {streakFreezes > 0 && <span className="text-[10px]">❄️</span>}
           </div>
 
           {/* Sound Audio Mute Toggle Button */}
@@ -105,34 +95,16 @@ export const Navbar: React.FC = () => {
             onClick={toggleMute}
             aria-label={muted ? "Unmute audio" : "Mute audio"}
             title={muted ? "Unmute audio" : "Mute audio"}
-            className="p-2 rounded-full border border-grayscale-200 dark:border-grayscale-800 text-grayscale-700 dark:text-grayscale-300 hover:text-pure-black dark:hover:text-pure-white hover:bg-grayscale-100 dark:hover:bg-grayscale-900 transition-colors"
+            className="p-2 clip-corner-sm border border-cyan-500/30 text-slate-400 hover:text-cyan-300 hover:border-cyan-400 hover:bg-cyan-500/10 transition-colors"
           >
             {muted ? (
-              <svg className="w-4 h-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_5px_rgba(0,240,255,0.8)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-            )}
-          </button>
-
-          {/* Light/Dark Mode Switch */}
-          <button
-            onClick={() => { toggleTheme(); playClick(); }}
-            aria-label="Toggle theme mode"
-            title="Toggle theme mode"
-            className="p-2 rounded-full border border-grayscale-200 dark:border-grayscale-800 text-grayscale-700 dark:text-grayscale-300 hover:text-pure-black dark:hover:text-pure-white hover:bg-grayscale-100 dark:hover:bg-grayscale-900 transition-colors"
-          >
-            {theme === 'dark' ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
             )}
           </button>
@@ -146,7 +118,7 @@ export const Navbar: React.FC = () => {
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation menu"
-            className="md:hidden p-2 rounded-full border border-grayscale-200 dark:border-grayscale-800 text-grayscale-700 dark:text-grayscale-300"
+            className="md:hidden p-2 clip-corner-sm border border-cyan-500/30 text-slate-300"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {mobileMenuOpen ? (
@@ -166,17 +138,17 @@ export const Navbar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-grayscale-200 dark:border-grayscale-800 bg-pure-white dark:bg-pure-black px-6 py-4 space-y-3 font-serif"
+            className="md:hidden border-b border-cyan-500/30 bg-slate-950 px-6 py-4 space-y-3 font-hud tracking-widest text-xs"
           >
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2 text-base font-medium ${
+                className={`block py-2 ${
                   location.pathname === link.path
-                    ? 'text-pure-black dark:text-pure-white font-bold'
-                    : 'text-grayscale-500 dark:text-grayscale-400'
+                    ? 'text-cyan-300 font-bold'
+                    : 'text-slate-400'
                 }`}
               >
                 {link.label}

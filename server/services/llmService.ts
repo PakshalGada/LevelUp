@@ -49,6 +49,27 @@ if (process.env.GEMINI_MODEL && !PREFERRED_MODELS.includes(process.env.GEMINI_MO
   PREFERRED_MODELS.unshift(process.env.GEMINI_MODEL);
 }
 
+// Helper to shuffle quiz question options so correct answer position is randomly distributed
+function shuffleQuizQuestionOptions(question: GeneratedQuizQuestionPayload): GeneratedQuizQuestionPayload {
+  const options = [...question.options];
+  const targetCorrectIndex = question.correctIndex ?? 0;
+  const correctText = options[targetCorrectIndex] || options[0];
+
+  // Fisher-Yates shuffle
+  for (let i = options.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [options[i], options[j]] = [options[j], options[i]];
+  }
+
+  const newCorrectIndex = options.indexOf(correctText);
+
+  return {
+    ...question,
+    options,
+    correctIndex: newCorrectIndex >= 0 ? newCorrectIndex : 0,
+  };
+}
+
 // Define exact Gemini JSON response schema
 const contentResponseSchema: ResponseSchema = {
   type: SchemaType.OBJECT,
@@ -86,7 +107,7 @@ const contentResponseSchema: ResponseSchema = {
             items: { type: SchemaType.STRING },
             description: "Exactly 4 multiple choice options"
           },
-          correctIndex: { type: SchemaType.INTEGER, description: "0-indexed correct option (0 to 3)" },
+          correctIndex: { type: SchemaType.INTEGER, description: "0-indexed correct option (0, 1, 2, or 3)" },
           explanation: { type: SchemaType.STRING, description: "Explanation of correct and distractor choices" }
         },
         required: ["id", "question", "options", "correctIndex", "explanation"]
@@ -102,6 +123,71 @@ const contentResponseSchema: ResponseSchema = {
 function generateFallbackContent(topic: string): GeneratedContentResult {
   const cleanTopic = topic.trim();
   const titleCaseTopic = cleanTopic.charAt(0).toUpperCase() + cleanTopic.slice(1);
+
+  const rawQuestions: GeneratedQuizQuestionPayload[] = [
+    {
+      id: "q1",
+      question: `What is the primary core principle underlying ${titleCaseTopic}?`,
+      options: [
+        `Bypassing error handling to maximize raw speed`,
+        `Modular abstraction and predictable state management`,
+        `Random execution without pre-defined boundaries`,
+        `Exclusive reliance on legacy single-threaded processing`
+      ],
+      correctIndex: 1,
+      explanation: `Modular abstraction and clear state boundaries are essential for maintainability and scalability in ${titleCaseTopic}.`
+    },
+    {
+      id: "q2",
+      question: `How does mastering ${titleCaseTopic} improve problem-solving efficiency?`,
+      options: [
+        `By eliminating the need for automated testing`,
+        `By forcing all code to run on a single thread`,
+        `By isolating concerns and reducing cognitive overhead`,
+        `By replacing documentation with guessing`
+      ],
+      correctIndex: 2,
+      explanation: `Isolating concerns minimizes cognitive load, making complex topics easier to reason about and debug.`
+    },
+    {
+      id: "q3",
+      question: `Which architectural pattern best complements ${titleCaseTopic}?`,
+      options: [
+        `Tightly coupled monolithic dependencies`,
+        `Global mutable state shared across all components`,
+        `Unstructured spaghetti code`,
+        `Single responsibility with clear input/output contracts`
+      ],
+      correctIndex: 3,
+      explanation: `Decoupled components with clear input/output contracts ensure predictability and clean maintenance.`
+    },
+    {
+      id: "q4",
+      question: `What is a common pitfall when first learning ${titleCaseTopic}?`,
+      options: [
+        `Over-complicating early abstractions before understanding core mechanics`,
+        `Writing unit tests early in the process`,
+        `Using clear variable naming conventions`,
+        `Reading official documentation`
+      ],
+      correctIndex: 0,
+      explanation: `Premature abstraction adds unnecessary complexity before the underlying mechanics are fully understood.`
+    },
+    {
+      id: "q5",
+      question: `What is the recommended next step after completing this lesson on ${titleCaseTopic}?`,
+      options: [
+        `Immediately forget the key takeaways`,
+        `Avoid practicing for several months`,
+        `Apply concepts through active recall and practical exercise`,
+        `Rely solely on passive reading`
+      ],
+      correctIndex: 2,
+      explanation: `Active recall and hands-on practice consolidate new knowledge into long-term memory.`
+    }
+  ];
+
+  const shuffledQuiz = rawQuestions.map(shuffleQuizQuestionOptions);
 
   return {
     lesson: {
@@ -123,68 +209,7 @@ function generateFallbackContent(topic: string): GeneratedContentResult {
       ],
       estimatedReadTime: 4
     },
-    quiz: [
-      {
-        id: "q1",
-        question: `What is the primary core principle underlying ${titleCaseTopic}?`,
-        options: [
-          `Modular abstraction and predictable state management`,
-          `Random execution without pre-defined boundaries`,
-          `Exclusive reliance on legacy single-threaded processing`,
-          `Bypassing error handling to maximize raw speed`
-        ],
-        correctIndex: 0,
-        explanation: `Modular abstraction and clear state boundaries are essential for maintainability and scalability in ${titleCaseTopic}.`
-      },
-      {
-        id: "q2",
-        question: `How does mastering ${titleCaseTopic} improve problem-solving efficiency?`,
-        options: [
-          `By isolating concerns and reducing cognitive overhead`,
-          `By eliminating the need for automated testing`,
-          `By forcing all code to run on a single thread`,
-          `By replacing documentation with guessing`
-        ],
-        correctIndex: 0,
-        explanation: `Isolating concerns minimizes cognitive load, making complex topics easier to reason about and debug.`
-      },
-      {
-        id: "q3",
-        question: `Which architectural pattern best complements ${titleCaseTopic}?`,
-        options: [
-          `Single responsibility with clear input/output contracts`,
-          `Tightly coupled monolithic dependencies`,
-          `Global mutable state shared across all components`,
-          `Unstructured spaghetti code`
-        ],
-        correctIndex: 0,
-        explanation: `Decoupled components with clear input/output contracts ensure predictability and clean maintenance.`
-      },
-      {
-        id: "q4",
-        question: `What is a common pitfall when first learning ${titleCaseTopic}?`,
-        options: [
-          `Over-complicating early abstractions before understanding core mechanics`,
-          `Writing unit tests early in the process`,
-          `Using clear variable naming conventions`,
-          `Reading official documentation`
-        ],
-        correctIndex: 0,
-        explanation: `Premature abstraction adds unnecessary complexity before the underlying mechanics are fully understood.`
-      },
-      {
-        id: "q5",
-        question: `What is the recommended next step after completing this lesson on ${titleCaseTopic}?`,
-        options: [
-          `Apply concepts through active recall and practical exercise`,
-          `Immediately forget the key takeaways`,
-          `Avoid practicing for several months`,
-          `Rely solely on passive reading`
-        ],
-        correctIndex: 0,
-        explanation: `Active recall and hands-on practice consolidate new knowledge into long-term memory.`
-      }
-    ]
+    quiz: shuffledQuiz
   };
 }
 
@@ -201,7 +226,6 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
   const ai = new GoogleGenerativeAI(apiKey);
   let lastError: any = null;
 
-  // Try candidate models in order if one returns 404 / unavailable
   for (const modelName of PREFERRED_MODELS) {
     try {
       console.log(`[GeminiService] Calling Gemini API model: ${modelName} for topic "${topic}"`);
@@ -251,6 +275,9 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
         throw new GeminiServiceError('Invalid JSON structure returned by Gemini API.', 'PARSING_FAILED');
       }
 
+      // Shuffle options & randomize correctIndex across A, B, C, D
+      parsed.quiz = parsed.quiz.map(shuffleQuizQuestionOptions);
+
       console.log(`[GeminiService] Successfully generated content using ${modelName}`);
       return parsed;
     } catch (err: any) {
@@ -285,29 +312,43 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
 
 /**
  * Reframe a section of content into an alternate tone ("Simpler", "Story form", "Exam-focused")
+ * Fine-tuned prompt instructions for deep narrative storytelling, ELI5 simplicity, and exam key points.
  */
 export async function reframeContentWithGemini(
   content: string,
   style: 'Simpler' | 'Story form' | 'Exam-focused'
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
+
+  let styleInstruction = '';
+  if (style === 'Simpler') {
+    styleInstruction = `Rewrite this educational section in plain, intuitive language (ELI5). Use a clear real-world analogy, short sentences, and simple vocabulary. Remove all dense jargon and explain the core idea so a beginner can immediately grasp it.`;
+  } else if (style === 'Story form') {
+    styleInstruction = `Transform this educational section into a captivating, creative narrative story. Use a vivid real-world scenario (e.g., an engineer, architect, or investigator solving a critical problem), character perspective, and storytelling arc (setup, conflict, resolution) to bring the concepts to life organically. Make it immersive, engaging, and memorable to read.`;
+  } else if (style === 'Exam-focused') {
+    styleInstruction = `Reframe this educational section as an intense, high-yield study sheet for an exam. Structure key takeaways into bold bullet points, core definitions, test traps, and testable facts for rapid active recall.`;
+  }
+
   if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
     if (style === 'Simpler') {
-      return `In simple terms: ${content.replace(/(However,|Furthermore,|Consequently,)/gi, '')} Basically, think of it like building blocks fitting together smoothly.`;
+      return `Simply put: Imagine building a house with LEGO blocks. ${content.replace(/(However,|Furthermore,|Consequently,)/gi, '')} Every piece snaps into place cleanly so the whole structure stays solid without breaking.`;
     }
     if (style === 'Story form') {
-      return `Imagine a team working under tight deadlines. ${content} Step by step, each piece fell into place, revealing a clear blueprint for success.`;
+      return `Late on a stormy Tuesday night, Maya sat in front of glowing monitors. Her system was failing under heavy traffic until she applied this exact principle. ${content} Suddenly, the bottleneck cleared, servers stabilized, and the team celebrated a seamless deployment.`;
     }
-    return `EXAM FOCUS: Key concept to remember: ${content} High-yield takeaway for tests: identify core inputs, state flow, and expected boundary outputs.`;
+    return `⚡ EXAM HIGH-YIELD SUMMARY:\n\n• Core Concept: ${content}\n• Test Trap: Pay attention to state boundaries and execution order.\n• Key Definition: Master the primary inputs and outputs for fast recall.`;
   }
 
   const ai = new GoogleGenerativeAI(apiKey);
-  const promptInstruction = `Reframe the following educational section text into an alternate tone: "${style}".
-Keep the explanation accurate and clear.
-Return ONLY the reframed text directly without markdown formatting.
+  const promptInstruction = `You are a master educator specializing in adaptive learning styles.
+${styleInstruction}
 
-Original Content:
-"${content}"`;
+Original Section Content:
+"${content}"
+
+CRITICAL GUIDELINES:
+- Output ONLY the reframed section text directly. Do NOT include conversational prefixes like "Here is a story form version:" or markdown code block wrappers.
+- Maintain full conceptual accuracy while completely transforming the narrative tone and structure.`;
 
   for (const modelName of PREFERRED_MODELS) {
     try {

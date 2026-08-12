@@ -11,15 +11,15 @@ export const SkeletonLoader: React.FC<SkeletonProps> = ({
   variant = 'text',
 }) => {
   const variantStyles = {
-    text: 'h-4 w-full rounded-md',
-    title: 'h-8 w-3/4 rounded-lg',
-    avatar: 'h-10 w-10 rounded-full shrink-0',
-    card: 'h-32 w-full rounded-2xl',
+    text: 'h-4 w-full clip-corner-sm',
+    title: 'h-8 w-3/4 clip-corner-sm',
+    avatar: 'h-10 w-10 clip-corner-sm shrink-0',
+    card: 'h-32 w-full clip-corner',
   };
 
   return (
     <div
-      className={`relative overflow-hidden bg-grayscale-100 dark:bg-grayscale-900 border border-grayscale-200 dark:border-grayscale-800 ${variantStyles[variant]} ${className}`}
+      className={`relative overflow-hidden bg-slate-900/80 border border-cyan-500/20 ${variantStyles[variant]} ${className}`}
     >
       <motion.div
         animate={{ x: ['-100%', '100%'] }}
@@ -28,7 +28,7 @@ export const SkeletonLoader: React.FC<SkeletonProps> = ({
           duration: 1.5,
           ease: 'easeInOut',
         }}
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-grayscale-200/40 dark:via-grayscale-800/40 to-transparent transform -skew-x-12"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent transform -skew-x-12"
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { Card } from '../components/ui/Card';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Badge } from '../components/ui/Badge';
 import { Avatar } from '../components/ui/Avatar';
+import { ArtifactIcon } from '../components/ui/ArtifactIcon';
 import { useGameStore } from '../store/useGameStore';
 import { useContentStore } from '../store/useContentStore';
 import { playClick } from '../lib/soundEffects';
@@ -69,7 +70,6 @@ export const HomePage: React.FC = () => {
     'Architecture & Spatial Design',
   ];
 
-  // Deterministically select today's challenge topic
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   const todayChallengeTopic = dailyChallengeTopics[dayOfYear % dailyChallengeTopics.length];
 
@@ -102,7 +102,7 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-24 relative font-serif">
+    <div className="space-y-20 relative font-sans">
 
       {/* STREAK PROTECTED NOTICE BANNER */}
       <AnimatePresence>
@@ -111,42 +111,42 @@ export const HomePage: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="max-w-xl mx-auto p-4 rounded-xl border border-grayscale-300 dark:border-grayscale-700 bg-grayscale-100 dark:bg-grayscale-900 text-center space-y-2"
+            className="max-w-xl mx-auto p-4 clip-corner bg-slate-900 border border-amber-500/50 shadow-hud-gold text-center space-y-2 font-hud"
           >
-            <p className="text-sm font-semibold text-pure-black dark:text-pure-white flex items-center justify-center gap-2">
+            <p className="text-xs font-bold text-amber-400 flex items-center justify-center gap-2 tracking-wider">
               <span>❄️</span>
-              <span>{streakProtectedNotice}</span>
+              <span>{streakProtectedNotice.toUpperCase()}</span>
             </p>
             <button
               onClick={clearStreakProtectedNotice}
-              className="text-xs font-serif underline text-grayscale-500 hover:text-pure-black dark:hover:text-pure-white"
+              className="text-[10px] font-hud uppercase tracking-widest text-slate-400 hover:text-amber-400"
             >
-              Dismiss Notice
+              [ DISMISS NOTICE ]
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* LOADING OVERLAY / MODAL */}
+      {/* SCI-FI HUD GENERATION OVERLAY */}
       <AnimatePresence>
         {isGenerating && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-pure-white/90 dark:bg-pure-black/90 backdrop-blur-md px-6 font-serif"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl px-6 font-hud"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="text-center space-y-6 max-w-sm mx-auto p-8 rounded-2xl border border-grayscale-200 dark:border-grayscale-800 bg-pure-white dark:bg-off-black shadow-elevation-hover"
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="text-center space-y-6 max-w-sm mx-auto p-8 clip-corner bg-slate-900 border border-cyan-500/50 shadow-hud-cyan-lg"
             >
               <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                  className="w-12 h-12 rounded-full border-2 border-grayscale-300 dark:border-grayscale-700 border-t-pure-black dark:border-t-pure-white"
+                  className="w-12 h-12 clip-corner border-2 border-cyan-500/40 border-t-cyan-400 shadow-hud-cyan"
                 />
               </div>
 
@@ -158,13 +158,13 @@ export const HomePage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.25 }}
-                    className="text-base font-semibold text-pure-black dark:text-pure-white tracking-tight"
+                    className="text-sm font-bold text-cyan-300 uppercase tracking-widest"
                   >
                     {loadingStatus}
                   </motion.p>
                 </AnimatePresence>
-                <p className="text-xs text-grayscale-500 font-serif">
-                  Generating custom lesson & 5-question quiz via Gemini LLM
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  Synthesizing Neural Micro-Lesson & 5-Question HUD Quiz via Gemini
                 </p>
               </div>
             </motion.div>
@@ -173,23 +173,24 @@ export const HomePage: React.FC = () => {
       </AnimatePresence>
 
       {/* 1. HERO SECTION */}
-      <section className="text-center space-y-8 py-12 md:py-20 max-w-4xl mx-auto">
+      <section className="text-center space-y-8 py-10 md:py-16 max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-6"
         >
-          <span className="inline-block text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 font-medium">
-            Editorial Active Recall Platform
-          </span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 clip-corner-sm border border-cyan-500/30 bg-cyan-500/10 text-[10px] font-hud uppercase tracking-widest text-cyan-300 shadow-hud-cyan">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            NEURAL ACTIVE RECALL PROTOCOL
+          </div>
           
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tightest leading-[1.05] text-pure-black dark:text-pure-white">
-            Level up your learning.
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-hud tracking-widest leading-[1.05] text-slate-100 uppercase drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+            LEVEL UP YOUR KNOWLEDGE.
           </h1>
 
-          <p className="text-lg md:text-xl font-light text-grayscale-600 dark:text-grayscale-400 max-w-2xl mx-auto leading-relaxed">
-            Enter any topic to instantly generate a tailored micro-lesson and 5-question conceptual quiz powered by Google Gemini.
+          <p className="text-base md:text-lg font-sans text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Enter any concept or topic to instantly synthesize a sci-fi micro-lesson and 5-question conceptual quiz powered by Google Gemini.
           </p>
         </motion.div>
 
@@ -200,10 +201,10 @@ export const HomePage: React.FC = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="max-w-xl mx-auto p-4 rounded-xl border border-danger-light-border dark:border-danger-border bg-danger-light-bg dark:bg-danger-bg text-center space-y-2"
+              className="max-w-xl mx-auto p-4 clip-corner bg-red-950/80 border border-red-500/40 text-center space-y-2 font-hud"
             >
-              <p className="text-sm font-semibold text-danger-light-text dark:text-red-400">
-                {error.message}
+              <p className="text-xs font-bold text-red-400 tracking-wider">
+                [ ERROR: {error.message.toUpperCase()} ]
               </p>
               <div className="flex justify-center gap-3 pt-1">
                 <button
@@ -211,16 +212,16 @@ export const HomePage: React.FC = () => {
                     clearError();
                     setTopicInput('');
                   }}
-                  className="text-xs font-serif underline text-grayscale-600 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white"
+                  className="text-[10px] font-hud tracking-widest text-slate-400 hover:text-slate-100"
                 >
-                  Dismiss
+                  [ DISMISS ]
                 </button>
                 {error.topic && (
                   <button
                     onClick={() => handleGenerate(error.topic)}
-                    className="text-xs font-serif font-bold underline text-pure-black dark:text-pure-white"
+                    className="text-[10px] font-hud font-bold tracking-widest text-cyan-300"
                   >
-                    Try Again
+                    [ RETRY GENERATION ]
                   </button>
                 )}
               </div>
@@ -240,7 +241,7 @@ export const HomePage: React.FC = () => {
               e.preventDefault();
               handleGenerate();
             }} 
-            className="relative flex items-center bg-pure-white dark:bg-off-black rounded-full border border-grayscale-300 dark:border-grayscale-700 p-1.5 shadow-elevation-resting focus-within:border-pure-black dark:focus-within:border-pure-white transition-all duration-200"
+            className="relative flex items-center bg-slate-900/90 clip-corner border border-cyan-500/40 p-2 shadow-hud-cyan focus-within:border-cyan-400 transition-all duration-200"
           >
             <input
               type="text"
@@ -249,51 +250,51 @@ export const HomePage: React.FC = () => {
                 setTopicInput(e.target.value);
                 if (error) clearError();
               }}
-              placeholder="What would you like to learn today?"
-              className="w-full bg-transparent px-5 py-2.5 text-sm md:text-base text-pure-black dark:text-pure-white placeholder-grayscale-400 dark:placeholder-grayscale-600 focus:outline-none font-serif"
+              placeholder="INPUT KNOWLEDGE TOPIC OR MODULE..."
+              className="w-full bg-transparent px-4 py-2.5 text-xs sm:text-sm font-hud text-slate-100 placeholder-slate-500 focus:outline-none uppercase tracking-wider"
               disabled={isGenerating}
             />
             <Button 
               variant="primary" 
               size="md" 
-              className="shrink-0 rounded-full"
+              className="shrink-0"
               disabled={isGenerating || !topicInput.trim()}
               type="submit"
             >
-              {isGenerating ? 'Generating...' : 'Generate'}
+              {isGenerating ? 'PROCESSING...' : 'INITIALIZE'}
             </Button>
           </form>
 
           {/* TIMED SPRINT MODE TOGGLE SWITCH */}
-          <div className="flex items-center justify-center gap-4 text-xs font-serif">
-            <span className="text-grayscale-400">Mode:</span>
+          <div className="flex items-center justify-center gap-3 text-xs font-hud tracking-wider uppercase">
+            <span className="text-slate-400">PROTOCOL MODE:</span>
             <button
               type="button"
               onClick={() => { playClick(); setTimedSprintMode(false); }}
-              className={`px-3 py-1 rounded-full transition-colors ${
+              className={`px-3.5 py-1 clip-corner-sm transition-all ${
                 !timedSprintMode
-                  ? 'bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black font-semibold'
-                  : 'text-grayscale-500 hover:text-pure-black dark:hover:text-pure-white'
+                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-hud-cyan'
+                  : 'text-slate-400 hover:text-slate-100 border border-slate-800'
               }`}
             >
-              Standard
+              STANDARD
             </button>
             <button
               type="button"
               onClick={() => { playClick(); setTimedSprintMode(true); }}
-              className={`px-3 py-1 rounded-full transition-colors ${
+              className={`px-3.5 py-1 clip-corner-sm transition-all ${
                 timedSprintMode
-                  ? 'bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black font-semibold'
-                  : 'text-grayscale-500 hover:text-pure-black dark:hover:text-pure-white'
+                  ? 'bg-cyan-500 text-slate-950 font-bold shadow-hud-cyan'
+                  : 'text-slate-400 hover:text-slate-100 border border-slate-800'
               }`}
             >
-              Timed Sprint (15s/q)
+              TIMED SPRINT (15S)
             </button>
           </div>
 
           {/* SUGGESTED TOPIC CHIPS */}
-          <div className="flex flex-wrap justify-center items-center gap-2 pt-1">
-            <span className="text-xs text-grayscale-400 dark:text-grayscale-600 mr-1">Suggestions:</span>
+          <div className="flex flex-wrap justify-center items-center gap-2 pt-1 font-hud text-xs">
+            <span className="text-[10px] text-slate-500 tracking-widest mr-1 uppercase">PRESETS:</span>
             {suggestedTopics.map((topic) => (
               <button
                 key={topic}
@@ -302,7 +303,7 @@ export const HomePage: React.FC = () => {
                   setTopicInput(topic);
                   handleGenerate(topic);
                 }}
-                className="text-xs font-serif px-3 py-1 rounded-full border border-grayscale-200 dark:border-grayscale-800 text-grayscale-600 dark:text-grayscale-400 hover:text-pure-black dark:hover:text-pure-white hover:border-grayscale-400 dark:hover:border-grayscale-600 hover:bg-grayscale-100/50 dark:hover:bg-grayscale-900/50 transition-all duration-150 disabled:opacity-50"
+                className="text-[10px] uppercase tracking-wider px-3 py-1 clip-corner-sm border border-cyan-500/20 bg-slate-900/60 text-slate-400 hover:text-cyan-300 hover:border-cyan-400 transition-all duration-150 disabled:opacity-50"
               >
                 {topic}
               </button>
@@ -313,40 +314,40 @@ export const HomePage: React.FC = () => {
 
       {/* 3. FEATURED TODAY'S DAILY CHALLENGE CARD */}
       <section className="max-w-4xl mx-auto">
-        <Card hoverable padding="lg" className="hairline-border space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-grayscale-200 dark:border-grayscale-800 pb-4">
+        <Card variant="gold" hoverable padding="lg" className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-500/30 pb-4">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-pure-black dark:bg-pure-white" />
-                Featured Daily Challenge
+              <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-amber-400 font-hud font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-hud-gold animate-pulse" />
+                FEATURED DAILY MISSION
               </div>
-              <h2 className="text-2xl font-bold text-pure-black dark:text-pure-white tracking-tight">
+              <h2 className="text-2xl font-bold font-hud text-slate-100 tracking-wider">
                 {todayChallengeTopic}
               </h2>
             </div>
 
             {/* Countdown Timer to Midnight */}
-            <div className="text-right shrink-0 font-serif">
-              <span className="text-[10px] uppercase tracking-widest text-grayscale-400 block">Resets In</span>
-              <div className="text-lg font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
-                {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+            <div className="text-right shrink-0 font-hud">
+              <span className="text-[10px] uppercase tracking-widest text-amber-400/80 block">RESETS IN</span>
+              <div className="text-lg font-bold tracking-widest text-amber-400 tabular-nums shadow-hud-gold">
+                {timeLeft.hours}H {timeLeft.minutes}M {timeLeft.seconds}S
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm font-light text-grayscale-600 dark:text-grayscale-400 leading-relaxed">
-              Earn <span className="font-semibold text-pure-black dark:text-pure-white">+150 Bonus XP</span> and advance your daily streak by completing today's community challenge topic.
+            <p className="text-xs font-sans text-slate-300 leading-relaxed">
+              Earn <span className="font-bold text-amber-400 font-hud">+150 BONUS XP</span> and advance your neural streak by completing today's featured community challenge.
             </p>
 
             <Button
-              variant={isChallengeDone ? "ghost" : "primary"}
+              variant={isChallengeDone ? "secondary" : "gold"}
               size="md"
               onClick={handleStartDailyChallenge}
               disabled={isChallengeDone}
               className="shrink-0"
             >
-              {isChallengeDone ? "Completed Today &check;" : "Start Challenge (+150 XP)"}
+              {isChallengeDone ? "MISSION COMPLETED ✓" : "LAUNCH MISSION (+150 XP)"}
             </Button>
           </div>
         </Card>
@@ -354,96 +355,93 @@ export const HomePage: React.FC = () => {
 
       {/* 4. USER STATS SUMMARY CARD */}
       <section className="max-w-4xl mx-auto">
-        <Card padding="lg" className="hairline-border">
-          <div className="text-xs uppercase tracking-widest text-grayscale-500 dark:text-grayscale-400 font-medium mb-6">
-            Overview & Performance
+        <Card padding="lg">
+          <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-hud font-bold mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-hud-cyan" />
+            COMMAND CENTER &middot; NEURAL PERFORMANCE OVERVIEW
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-grayscale-200 dark:divide-grayscale-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-cyan-500/20">
             {/* Level */}
-            <div className="flex flex-col space-y-1">
-              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
-                Current Level
+            <div className="flex flex-col space-y-1 font-hud">
+              <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                RANK TIER
               </span>
-              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
+              <div className="text-4xl md:text-5xl font-black tracking-tight text-cyan-300 tabular-nums drop-shadow-[0_0_10px_rgba(0,240,255,0.6)]">
                 0{user.level}
               </div>
-              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
-                Learner Status: Active
+              <span className="text-[10px] text-slate-500 pt-1 tracking-widest uppercase">
+                STATUS: ACTIVE LEARNER
               </span>
             </div>
 
             {/* Total XP */}
-            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8">
-              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
-                Experience (XP)
+            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8 font-hud">
+              <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                TOTAL EXPERIENCE (XP)
               </span>
-              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums">
+              <div className="text-4xl md:text-5xl font-black tracking-tight text-slate-100 tabular-nums">
                 {user.totalXp}
               </div>
-              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
-                Target: {user.nextLevelXp} XP
+              <span className="text-[10px] text-slate-500 pt-1 tracking-widest uppercase">
+                NEXT RANK: {user.nextLevelXp} XP
               </span>
             </div>
 
             {/* Streak Days */}
-            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8">
-              <span className="text-xs uppercase tracking-widest text-grayscale-400 dark:text-grayscale-500">
-                Active Streak
+            <div className="flex flex-col space-y-1 pt-6 md:pt-0 md:pl-8 font-hud">
+              <span className="text-[10px] uppercase tracking-widest text-slate-400">
+                NEURAL STREAK
               </span>
-              <div className="text-4xl md:text-5xl font-bold tracking-tight text-pure-black dark:text-pure-white tabular-nums flex items-baseline gap-2">
+              <div className="text-4xl md:text-5xl font-black tracking-tight text-amber-400 tabular-nums flex items-baseline gap-2 drop-shadow-[0_0_10px_rgba(255,199,0,0.6)]">
                 <span>{user.streakDays}</span>
-                <span className="text-lg font-light text-grayscale-400 dark:text-grayscale-500">Days</span>
+                <span className="text-base font-normal text-slate-500">DAYS</span>
               </div>
-              <span className="text-xs text-grayscale-500 dark:text-grayscale-400 pt-1">
-                Best Record: {user.longestStreak} Days
+              <span className="text-[10px] text-slate-500 pt-1 tracking-widest uppercase">
+                RECORD: {user.longestStreak} DAYS
               </span>
             </div>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-grayscale-200 dark:border-grayscale-800/80">
-            <ProgressBar value={user.currentXp} max={user.nextLevelXp} label={`Level ${user.level} Progression`} />
+          <div className="mt-8 pt-6 border-t border-cyan-500/20">
+            <ProgressBar value={user.currentXp} max={user.nextLevelXp} label={`RANK LEVEL ${user.level} CAPACITY`} />
           </div>
         </Card>
       </section>
 
       {/* 5. DESIGN SYSTEM COMPONENT SHOWCASE */}
       <section className="max-w-4xl mx-auto space-y-8">
-        <div className="border-b border-grayscale-200 dark:border-grayscale-800 pb-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-pure-black dark:text-pure-white tracking-tight">
-            Design System Components
+        <div className="border-b border-cyan-500/30 pb-4">
+          <h2 className="text-2xl md:text-3xl font-black font-hud text-cyan-300 tracking-wider uppercase">
+            HUD DESIGN SYSTEM PRIMITIVES
           </h2>
-          <p className="text-sm text-grayscale-500 dark:text-grayscale-400 mt-1">
-            Monochrome, Apple-inspired editorial primitives and motion system.
+          <p className="text-xs font-sans text-slate-400 mt-1">
+            Sci-Fi HUD angular panels, cyan/gold glow system, and illustrated artifact emblems.
           </p>
         </div>
 
         {/* Buttons Grid */}
         <Card hoverable padding="lg" className="space-y-6">
-          <h3 className="text-base font-semibold text-pure-black dark:text-pure-white border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
-            Button Variants & Sizes
+          <h3 className="text-xs font-hud uppercase tracking-widest text-slate-300 border-b border-cyan-500/20 pb-2">
+            Button Variants & Interactive Glow
           </h3>
           <div className="flex flex-wrap items-center gap-4">
-            <Button variant="primary" size="lg">Primary Large</Button>
-            <Button variant="primary" size="md">Primary Medium</Button>
-            <Button variant="primary" size="sm">Primary Small</Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <Button variant="secondary" size="md">Secondary Outline</Button>
-            <Button variant="ghost" size="md">Ghost Link</Button>
-            <Button variant="danger" size="md">Desaturated Danger</Button>
+            <Button variant="primary" size="lg">Primary Cyan CTA</Button>
+            <Button variant="gold" size="lg">Gold Rank CTA</Button>
+            <Button variant="secondary" size="md">Secondary HUD</Button>
+            <Button variant="danger" size="sm">System Hazard</Button>
           </div>
         </Card>
 
-        {/* Badges & Unlocked Sheen */}
+        {/* Badges & Artifact Emblems */}
         <Card hoverable padding="lg" className="space-y-6">
-          <div className="flex items-center justify-between border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
+          <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
             <div>
-              <h3 className="text-base font-semibold text-pure-black dark:text-pure-white">
-                Badges & Lock States
+              <h3 className="text-xs font-hud uppercase tracking-widest text-slate-300">
+                Artifact Emblems & Charge-Up States
               </h3>
-              <p className="text-xs text-grayscale-500 dark:text-grayscale-400">
-                Click to toggle unlocked sheen sweep animation.
+              <p className="text-[10px] font-sans text-slate-500">
+                Illustrated glowing artifact icons in framed HUD backdrops.
               </p>
             </div>
             <Button 
@@ -451,7 +449,7 @@ export const HomePage: React.FC = () => {
               size="sm" 
               onClick={() => setBadgeUnlocked(!badgeUnlocked)}
             >
-              Toggle State ({badgeUnlocked ? 'Unlocked' : 'Locked'})
+              TOGGLE ({badgeUnlocked ? 'UNLOCKED' : 'LOCKED'})
             </Button>
           </div>
           
@@ -459,29 +457,33 @@ export const HomePage: React.FC = () => {
             <Badge 
               label="First Steps" 
               unlocked={badgeUnlocked} 
+              icon="Footprints"
               onClick={() => setBadgeUnlocked(!badgeUnlocked)} 
             />
             <Badge 
               label="Perfectionist" 
               unlocked={badgeUnlocked} 
+              icon="CheckCircle"
               onClick={() => setBadgeUnlocked(!badgeUnlocked)} 
             />
             <Badge 
               label="Speed Demon" 
               unlocked={false} 
+              icon="Clock"
             />
             <Badge 
               label="Unstoppable" 
               unlocked={false} 
+              icon="Zap"
             />
           </div>
         </Card>
 
-        {/* Progress Bar & Interactive Counter */}
+        {/* SegmentedBar Progress */}
         <Card hoverable padding="lg" className="space-y-6">
-          <div className="flex items-center justify-between border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
-            <h3 className="text-base font-semibold text-pure-black dark:text-pure-white">
-              Animated Progress Bar
+          <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2 font-hud">
+            <h3 className="text-xs uppercase tracking-widest text-slate-300">
+              HUD Segmented Bar (10 Blocks)
             </h3>
             <div className="flex items-center gap-2">
               <Button 
@@ -504,29 +506,8 @@ export const HomePage: React.FC = () => {
           <ProgressBar 
             value={progressVal} 
             max={1000} 
-            label="Module Master XP" 
+            label="Module Capacity" 
           />
-        </Card>
-
-        {/* Avatars */}
-        <Card hoverable padding="lg" className="space-y-6">
-          <h3 className="text-base font-semibold text-pure-black dark:text-pure-white border-b border-grayscale-200 dark:border-grayscale-800 pb-2">
-            Avatar Variations
-          </h3>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <Avatar initials="AP" size="lg" />
-              <span className="text-xs text-grayscale-500 font-serif">Large</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Avatar initials="LU" size="md" />
-              <span className="text-xs text-grayscale-500 font-serif">Medium</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Avatar initials="CL" size="sm" />
-              <span className="text-xs text-grayscale-500 font-serif">Small</span>
-            </div>
-          </div>
         </Card>
       </section>
     </div>

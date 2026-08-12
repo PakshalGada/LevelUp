@@ -5,6 +5,7 @@ import { useLeaderboardStore, LeaderboardTab } from '../store/useLeaderboardStor
 import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
 import { SkeletonLoader } from '../components/ui/SkeletonLoader';
+import { playClick } from '../lib/soundEffects';
 
 export const LeaderboardPage: React.FC = () => {
   const { user } = useGameStore();
@@ -29,44 +30,38 @@ export const LeaderboardPage: React.FC = () => {
   const tabs: LeaderboardTab[] = ['Global', 'This Week', 'Friends'];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 font-serif pb-16">
+    <div className="max-w-4xl mx-auto space-y-10 font-hud pb-16">
       {/* Title */}
       <div className="text-center space-y-3">
-        <span className="text-xs uppercase tracking-widest text-grayscale-500 font-medium">Community Mastery</span>
-        <h1 className="text-4xl sm:text-5xl font-bold text-pure-black dark:text-pure-white tracking-tight">
-          Global Leaderboard
+        <span className="text-[10px] uppercase tracking-widest text-cyan-400 font-bold">COMMUNITY RANKING PROTOCOL</span>
+        <h1 className="text-4xl sm:text-5xl font-black text-slate-100 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+          GLOBAL LEADERBOARD
         </h1>
-        <p className="text-sm text-grayscale-500 dark:text-grayscale-400 max-w-lg mx-auto leading-relaxed font-light">
-          Recognizing top learners and daily streak consistency across the global community.
+        <p className="text-xs font-sans text-slate-400 max-w-lg mx-auto leading-relaxed">
+          Recognizing neural consistency and active recall mastery across the global learning network.
         </p>
       </div>
 
       {/* Filter Tabs */}
       <div className="flex justify-center items-center gap-2">
-        <div className="inline-flex items-center gap-1.5 bg-grayscale-100/70 dark:bg-grayscale-900/70 p-1.5 rounded-full border border-grayscale-200 dark:border-grayscale-800">
+        <div className="inline-flex items-center gap-1.5 bg-slate-950 p-1.5 clip-corner-sm border border-cyan-500/30">
           {tabs.map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
                 key={tab}
                 onClick={() => {
+                  playClick();
                   setLoading(true);
                   setActiveTab(tab);
                 }}
-                className={`relative px-4 py-1.5 text-xs font-serif font-medium rounded-full transition-colors duration-200 ${
+                className={`relative px-4 py-1.5 text-xs font-hud uppercase tracking-wider font-semibold clip-corner-sm transition-colors duration-200 ${
                   isActive
-                    ? 'text-pure-black dark:text-pure-white'
-                    : 'text-grayscale-500 hover:text-pure-black dark:hover:text-pure-white'
+                    ? 'bg-cyan-500 text-slate-950 shadow-hud-cyan'
+                    : 'text-slate-400 hover:text-cyan-300'
                 }`}
               >
                 {tab}
-                {isActive && (
-                  <motion.div
-                    layoutId="leaderboard-tab-bg"
-                    className="absolute inset-0 bg-pure-white dark:bg-off-black rounded-full border border-grayscale-200 dark:border-grayscale-800 shadow-elevation-resting -z-10"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  />
-                )}
               </button>
             );
           })}
@@ -78,57 +73,58 @@ export const LeaderboardPage: React.FC = () => {
           <SkeletonLoader variant="card" className="h-40" />
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <SkeletonLoader key={i} variant="text" className="h-16 rounded-xl" />
+              <SkeletonLoader key={i} variant="text" className="h-16 clip-corner" />
             ))}
           </div>
         </div>
       ) : (
         <div className="space-y-10">
           
-          {/* TOP 3 RESTRAINED PODIUM LAYOUT */}
+          {/* TOP 3 PODIUM LAYOUT */}
           {top3.length >= 3 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-4">
               
               {/* #2 Rank */}
               <Card 
                 padding="lg" 
-                className={`text-center space-y-4 md:order-1 hairline-border ${
-                  top3[1].isCurrentUser ? 'border-pure-black dark:border-pure-white shadow-elevation-hover' : ''
+                className={`text-center space-y-4 md:order-1 ${
+                  top3[1].isCurrentUser ? 'border-cyan-400 shadow-hud-cyan-lg' : ''
                 }`}
               >
-                <span className="text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">Rank 02</span>
+                <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">RANK 02</span>
                 <Avatar initials={top3[1].avatar} size="lg" className="mx-auto" />
                 <div>
-                  <div className="font-bold text-lg text-pure-black dark:text-pure-white flex items-center justify-center gap-1.5">
+                  <div className="font-bold text-base text-slate-100 flex items-center justify-center gap-1.5 uppercase tracking-wider">
                     <span>{top3[1].name}</span>
-                    {top3[1].isCurrentUser && <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black">You</span>}
+                    {top3[1].isCurrentUser && <span className="text-[9px] uppercase font-bold px-2 py-0.5 clip-corner-sm bg-cyan-500 text-slate-950">You</span>}
                   </div>
-                  <div className="text-xs text-grayscale-400">Level {top3[1].level}</div>
+                  <div className="text-[10px] text-cyan-400 uppercase tracking-widest">LVL {top3[1].level}</div>
                 </div>
-                <div className="text-xl font-bold text-pure-black dark:text-pure-white tabular-nums pt-1 border-t border-grayscale-100 dark:border-grayscale-800">
+                <div className="text-xl font-bold text-slate-100 tabular-nums pt-1 border-t border-cyan-500/20">
                   {top3[1].xp} XP
                 </div>
               </Card>
 
-              {/* #1 Rank (Prominent Typography Scale) */}
+              {/* #1 Rank (Prominent Typography Scale & Gold Glow) */}
               <Card 
+                variant="gold"
                 padding="lg" 
-                className={`text-center space-y-5 md:order-2 md:-translate-y-3 hairline-border ${
-                  top3[0].isCurrentUser ? 'border-pure-black dark:border-pure-white shadow-elevation-hover' : 'shadow-elevation-hover'
+                className={`text-center space-y-5 md:order-2 md:-translate-y-3 ${
+                  top3[0].isCurrentUser ? 'border-amber-400 shadow-hud-gold-lg' : 'shadow-hud-gold-lg'
                 }`}
               >
-                <div className="inline-block px-3 py-1 rounded-full border border-grayscale-300 dark:border-grayscale-700 bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black text-[10px] uppercase tracking-widest font-bold">
-                  Rank 01 &middot; Leader
+                <div className="inline-block px-3 py-1 clip-corner-sm border border-amber-300 bg-amber-400 text-slate-950 text-[10px] uppercase tracking-widest font-black shadow-hud-gold">
+                  RANK 01 &middot; LEADER
                 </div>
-                <Avatar initials={top3[0].avatar} size="lg" className="mx-auto ring-2 ring-pure-black dark:ring-pure-white" />
+                <Avatar initials={top3[0].avatar} size="lg" className="mx-auto ring-2 ring-amber-400 shadow-hud-gold" />
                 <div>
-                  <div className="font-bold text-xl text-pure-black dark:text-pure-white flex items-center justify-center gap-1.5">
+                  <div className="font-bold text-lg text-slate-100 flex items-center justify-center gap-1.5 uppercase tracking-wider">
                     <span>{top3[0].name}</span>
-                    {top3[0].isCurrentUser && <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black">You</span>}
+                    {top3[0].isCurrentUser && <span className="text-[9px] uppercase font-bold px-2 py-0.5 clip-corner-sm bg-amber-400 text-slate-950">You</span>}
                   </div>
-                  <div className="text-xs text-grayscale-400">Level {top3[0].level}</div>
+                  <div className="text-[10px] text-amber-400 uppercase tracking-widest">LVL {top3[0].level}</div>
                 </div>
-                <div className="text-3xl font-bold text-pure-black dark:text-pure-white tabular-nums pt-2 border-t border-grayscale-200 dark:border-grayscale-800">
+                <div className="text-3xl font-black text-amber-400 tabular-nums pt-2 border-t border-amber-500/30 drop-shadow-[0_0_10px_rgba(255,199,0,0.8)]">
                   {top3[0].xp} XP
                 </div>
               </Card>
@@ -136,20 +132,20 @@ export const LeaderboardPage: React.FC = () => {
               {/* #3 Rank */}
               <Card 
                 padding="lg" 
-                className={`text-center space-y-4 md:order-3 hairline-border ${
-                  top3[2].isCurrentUser ? 'border-pure-black dark:border-pure-white shadow-elevation-hover' : ''
+                className={`text-center space-y-4 md:order-3 ${
+                  top3[2].isCurrentUser ? 'border-cyan-400 shadow-hud-cyan-lg' : ''
                 }`}
               >
-                <span className="text-[10px] uppercase tracking-widest text-grayscale-400 font-semibold">Rank 03</span>
+                <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">RANK 03</span>
                 <Avatar initials={top3[2].avatar} size="lg" className="mx-auto" />
                 <div>
-                  <div className="font-bold text-lg text-pure-black dark:text-pure-white flex items-center justify-center gap-1.5">
+                  <div className="font-bold text-base text-slate-100 flex items-center justify-center gap-1.5 uppercase tracking-wider">
                     <span>{top3[2].name}</span>
-                    {top3[2].isCurrentUser && <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black">You</span>}
+                    {top3[2].isCurrentUser && <span className="text-[9px] uppercase font-bold px-2 py-0.5 clip-corner-sm bg-cyan-500 text-slate-950">You</span>}
                   </div>
-                  <div className="text-xs text-grayscale-400">Level {top3[2].level}</div>
+                  <div className="text-[10px] text-cyan-400 uppercase tracking-widest">LVL {top3[2].level}</div>
                 </div>
-                <div className="text-xl font-bold text-pure-black dark:text-pure-white tabular-nums pt-1 border-t border-grayscale-100 dark:border-grayscale-800">
+                <div className="text-xl font-bold text-slate-100 tabular-nums pt-1 border-t border-cyan-500/20">
                   {top3[2].xp} XP
                 </div>
               </Card>
@@ -158,8 +154,8 @@ export const LeaderboardPage: React.FC = () => {
           )}
 
           {/* RANKED LIST WITH REFLOW ANIMATION & HAIRLINE HIGHLIGHT FOR CURRENT USER */}
-          <Card padding="lg" className="hairline-border">
-            <div className="divide-y divide-grayscale-200 dark:divide-grayscale-800">
+          <Card padding="lg">
+            <div className="divide-y divide-cyan-500/20">
               <AnimatePresence>
                 {remainingList.map((item) => (
                   <motion.div
@@ -169,39 +165,39 @@ export const LeaderboardPage: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                    className={`py-4 px-4 sm:px-6 rounded-xl flex items-center justify-between transition-colors duration-150 ${
+                    className={`py-4 px-4 sm:px-6 clip-corner flex items-center justify-between transition-colors duration-150 ${
                       item.isCurrentUser
-                        ? 'bg-grayscale-100 dark:bg-grayscale-900 border border-pure-black dark:border-pure-white shadow-elevation-resting'
-                        : 'hover:bg-grayscale-50 dark:hover:bg-grayscale-950'
+                        ? 'bg-slate-900 border border-cyan-400 shadow-hud-cyan'
+                        : 'hover:bg-slate-900/60'
                     }`}
                   >
                     {/* Rank & User Info */}
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs tabular-nums text-grayscale-500 border border-grayscale-300 dark:border-grayscale-700 shrink-0">
+                      <div className="w-8 h-8 clip-corner-sm flex items-center justify-center font-bold text-xs tabular-nums text-slate-400 border border-cyan-500/30 bg-slate-950 shrink-0">
                         {item.rank < 10 ? `0${item.rank}` : item.rank}
                       </div>
 
                       <Avatar initials={item.avatar} size="sm" />
 
                       <div>
-                        <div className="font-bold text-pure-black dark:text-pure-white text-sm sm:text-base flex items-center gap-2">
+                        <div className="font-bold text-slate-100 text-sm uppercase tracking-wider flex items-center gap-2">
                           {item.name}
                           {item.isCurrentUser && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-pure-black text-pure-white dark:bg-pure-white dark:text-pure-black font-semibold uppercase">
-                              You &middot; Rank #{currentUserRank}
+                            <span className="px-2 py-0.5 clip-corner-sm text-[9px] bg-cyan-500 text-slate-950 font-black uppercase tracking-widest">
+                              YOU &middot; RANK #{currentUserRank}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-grayscale-500">Level {item.level}</div>
+                        <div className="text-[10px] text-slate-500">LVL {item.level}</div>
                       </div>
                     </div>
 
                     {/* XP & Streak */}
-                    <div className="flex items-center gap-6 text-xs sm:text-sm font-serif">
-                      <div className="text-grayscale-600 dark:text-grayscale-400">
-                        <span className="tabular-nums font-semibold">{item.streak}</span>d streak
+                    <div className="flex items-center gap-6 text-xs font-hud">
+                      <div className="text-amber-400">
+                        <span className="tabular-nums font-bold">{item.streak}</span>D STREAK
                       </div>
-                      <div className="font-bold text-pure-black dark:text-pure-white tabular-nums">
+                      <div className="font-bold text-slate-100 tabular-nums">
                         {item.xp} XP
                       </div>
                     </div>
