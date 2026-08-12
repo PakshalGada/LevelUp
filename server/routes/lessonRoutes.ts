@@ -1,27 +1,24 @@
 import { Router, Request, Response } from 'express';
-import { generateContentWithGemini, GeminiServiceError } from '../services/llmService.js';
+import { generateContentWithGemini, reframeContentWithGemini, GeminiServiceError } from '../services/llmService.js';
 
 const router = Router();
 
 // Basic in-memory sliding window rate limiter
-// Limits each IP to 10 generation requests per minute
 interface RateLimitRecord {
   timestamps: number[];
 }
 const rateLimitMap = new Map<string, RateLimitRecord>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 15;
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const record = rateLimitMap.get(ip) || { timestamps: [] };
-  
-  // Filter out timestamps older than the window
   const validTimestamps = record.timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
   
   if (validTimestamps.length >= MAX_REQUESTS_PER_WINDOW) {
     rateLimitMap.set(ip, { timestamps: validTimestamps });
-    return false; // Rate limit exceeded
+    return false;
   }
 
   validTimestamps.push(now);
@@ -33,7 +30,6 @@ const handleGenerateContent = async (req: Request, res: Response): Promise<void>
   try {
     const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown-ip';
     
-    // Check rate limit
     if (!checkRateLimit(clientIp)) {
       res.status(429).json({
         status: 'error',
@@ -97,12 +93,35 @@ const handleGenerateContent = async (req: Request, res: Response): Promise<void>
 };
 
 /**
- * POST /api/generate-content
- * Generate lesson + 5-question quiz via Gemini API with structured JSON output
+ * POST /api/reframe-content
+ * Reframe a paragraph/section into alternate tone ("Simpler", "Story form", "Exam-focused")
  */
-router.post('/generate-content', handleGenerateContent);
+router.post('/reframe-content', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { content, style } = req.body || {};
 
-// Legacy backward-compatible endpoint alias
+    if (!content || typeof content !== 'string') {
+      res.status(400).json({ status: 'error', message: 'Missing section content to reframe.' });
+      return;
+    }
+
+    const validStyles = ['Simpler', 'Story form', 'Exam-focused'];
+    const targetStyle = validStyles.includes(style) ? (style as 'Simpler' | 'Story form' | 'Exam-focused') : 'Simpler';
+
+    const reframedContent = await reframeContentWithGemini(content, targetStyle);
+
+    res.json({
+      status: 'success',
+      style: targetStyle,
+      reframedContent,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/reframe-content:', err);
+    res.status(500).json({ status: 'error', message: err?.message || 'Failed to reframe content.' });
+  }
+});
+
+router.post('/generate-content', handleGenerateContent);
 router.post('/generate-lesson', handleGenerateContent);
 
 export default router;

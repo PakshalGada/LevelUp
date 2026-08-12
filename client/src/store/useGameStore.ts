@@ -1,110 +1,305 @@
 import { create } from 'zustand';
-import { UserProgress, Badge } from '../types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { UserProgress, Badge, QuizHistoryItem } from '../types';
 
-interface GameState {
-  user: UserProgress;
-  addXp: (amount: number) => void;
-  completeTopic: (topicId: string) => void;
-  incrementStreak: () => void;
-  unlockBadge: (badge: Badge) => void;
-}
-
-const INITIAL_BADGES: Badge[] = [
+export const INITIAL_BADGES: Badge[] = [
   {
-    id: 'first-step',
-    title: 'First Step',
-    description: 'Completed your first micro-lesson',
+    id: 'first-steps',
+    title: 'First Steps',
+    description: 'Completed your first quiz challenge',
     icon: 'Footprints',
-    unlockedAt: new Date().toISOString(),
     rarity: 'Common',
   },
   {
-    id: 'streak-master',
-    title: 'On Fire',
-    description: 'Maintained a 3-day learning streak',
-    icon: 'Flame',
-    unlockedAt: new Date().toISOString(),
-    rarity: 'Rare',
-  },
-  {
-    id: 'quiz-wizard',
-    title: 'Quiz Wizard',
-    description: 'Scored 100% on a quiz',
-    icon: 'Zap',
+    id: 'perfectionist',
+    title: 'Perfectionist',
+    description: 'Achieved a perfect 5/5 score on a quiz',
+    icon: 'CheckCircle',
     rarity: 'Epic',
   },
   {
-    id: 'legendary-learner',
-    title: 'Grandmaster',
-    description: 'Reached Level 10 in LevelUp',
-    icon: 'Trophy',
+    id: 'on-fire',
+    title: 'On Fire',
+    description: 'Maintained a 3-day daily learning streak',
+    icon: 'Flame',
+    rarity: 'Rare',
+  },
+  {
+    id: 'unstoppable',
+    title: 'Unstoppable',
+    description: 'Reached a 7-day daily learning streak',
+    icon: 'Zap',
     rarity: 'Legendary',
+  },
+  {
+    id: 'polymath',
+    title: 'Polymath',
+    description: 'Completed quizzes in 5 different topics',
+    icon: 'BookOpen',
+    rarity: 'Epic',
+  },
+  {
+    id: 'speed-demon',
+    title: 'Speed Demon',
+    description: 'Completed a quiz in under 60s with 80%+ accuracy',
+    icon: 'Clock',
+    rarity: 'Rare',
   },
 ];
 
-export const useGameStore = create<GameState>((set) => ({
-  user: {
-    userId: 'user-1',
-    username: 'CyberLearner',
-    level: 3,
-    currentXp: 450,
-    nextLevelXp: 1000,
-    streakDays: 4,
-    totalPoints: 1450,
-    completedTopics: ['react-fundamentals'],
-    badges: INITIAL_BADGES,
-  },
+function getTodayString(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-  addXp: (amount: number) =>
-    set((state) => {
-      let newXp = state.user.currentXp + amount;
-      let newLevel = state.user.level;
-      let nextLevelXp = state.user.nextLevelXp;
+function getYesterdayString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-      if (newXp >= nextLevelXp) {
-        newXp -= nextLevelXp;
-        newLevel += 1;
-        nextLevelXp = Math.floor(nextLevelXp * 1.5);
-      }
+function generateAnonymousId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `user-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `user-${Math.random().toString(36).substring(2, 10)}`;
+}
 
-      return {
-        user: {
-          ...state.user,
-          level: newLevel,
-          currentXp: newXp,
-          nextLevelXp,
-          totalPoints: state.user.totalPoints + amount,
-        },
-      };
-    }),
+interface GameStoreState {
+  user: UserProgress;
+  pendingLevelUp: number | null;
+  newlyUnlockedBadges: Badge[];
 
-  completeTopic: (topicId: string) =>
-    set((state) => {
-      if (state.user.completedTopics.includes(topicId)) return state;
-      return {
-        user: {
-          ...state.user,
-          completedTopics: [...state.user.completedTopics, topicId],
-        },
-      };
-    }),
+  addXp: (amount: number) => void;
+  clearLevelUp: () => void;
+  clearNewlyUnlockedBadges: () => void;
+  incrementComboStreak: () => void;
+  resetComboStreak: () => void;
+  recordDailyActivity: () => void;
+  recordQuizResult: (params: {
+    topicId: string;
+    topicTitle: string;
+    score: number;
+    totalQuestions: number;
+    xpEarned: number;
+    durationSeconds: number;
+  }) => { newlyUnlocked: Badge[]; levelUpOccurred: boolean };
+  resetProgress: () => void;
+}
 
-  incrementStreak: () =>
-    set((state) => ({
+export const useGameStore = create<GameStoreState>()(
+  persist(
+    (set, get) => ({
       user: {
-        ...state.user,
-        streakDays: state.user.streakDays + 1,
+        userId: generateAnonymousId(),
+        username: 'Learner',
+        level: 1,
+        totalXp: 0,
+        currentXp: 0,
+        nextLevelXp: 250,
+        streakDays: 1,
+        longestStreak: 1,
+        lastActiveDate: getTodayString(),
+        comboStreak: 0,
+        completedTopics: [],
+        badges: INITIAL_BADGES,
+        quizHistory: [],
+        activityHeatmap: { [getTodayString()]: 1 },
       },
-    })),
+      pendingLevelUp: null,
+      newlyUnlockedBadges: [],
 
-  unlockBadge: (badge: Badge) =>
-    set((state) => {
-      if (state.user.badges.some((b) => b.id === badge.id)) return state;
-      return {
-        user: {
-          ...state.user,
-          badges: [...state.user.badges, { ...badge, unlockedAt: new Date().toISOString() }],
-        },
-      };
+      addXp: (amount: number) => {
+        set((state) => {
+          let newTotalXp = state.user.totalXp + amount;
+          let newCurrentXp = state.user.currentXp + amount;
+          let newLevel = state.user.level;
+          let nextLevelXp = state.user.nextLevelXp;
+          let levelUpTriggered = false;
+
+          while (newCurrentXp >= nextLevelXp) {
+            newCurrentXp -= nextLevelXp;
+            newLevel += 1;
+            nextLevelXp = newLevel * 250;
+            levelUpTriggered = true;
+          }
+
+          return {
+            user: {
+              ...state.user,
+              totalXp: newTotalXp,
+              currentXp: newCurrentXp,
+              level: newLevel,
+              nextLevelXp,
+            },
+            pendingLevelUp: levelUpTriggered ? newLevel : state.pendingLevelUp,
+          };
+        });
+      },
+
+      clearLevelUp: () => set({ pendingLevelUp: null }),
+      clearNewlyUnlockedBadges: () => set({ newlyUnlockedBadges: [] }),
+
+      incrementComboStreak: () =>
+        set((state) => ({
+          user: {
+            ...state.user,
+            comboStreak: state.user.comboStreak + 1,
+          },
+        })),
+
+      resetComboStreak: () =>
+        set((state) => ({
+          user: {
+            ...state.user,
+            comboStreak: 0,
+          },
+        })),
+
+      recordDailyActivity: () => {
+        const today = getTodayString();
+        const yesterday = getYesterdayString();
+        const state = get();
+        const last = state.user.lastActiveDate;
+
+        let newStreak = state.user.streakDays;
+        if (last === today) {
+          // Already recorded today
+        } else if (last === yesterday) {
+          newStreak += 1;
+        } else if (last < yesterday) {
+          newStreak = 1;
+        }
+
+        const newLongest = Math.max(state.user.longestStreak, newStreak);
+        const currentCount = state.user.activityHeatmap[today] || 0;
+
+        set((s) => ({
+          user: {
+            ...s.user,
+            streakDays: newStreak,
+            longestStreak: newLongest,
+            lastActiveDate: today,
+            activityHeatmap: {
+              ...s.user.activityHeatmap,
+              [today]: currentCount + 1,
+            },
+          },
+        }));
+      },
+
+      recordQuizResult: ({ topicId, topicTitle, score, totalQuestions, xpEarned, durationSeconds }) => {
+        const today = getTodayString();
+        get().recordDailyActivity();
+
+        const historyItem: QuizHistoryItem = {
+          id: `quiz-${Date.now()}`,
+          topicId,
+          topicTitle,
+          score,
+          totalQuestions,
+          xpEarned,
+          durationSeconds,
+          date: new Date().toISOString(),
+        };
+
+        const stateBefore = get();
+        const levelBefore = stateBefore.user.level;
+
+        // Add XP
+        get().addXp(xpEarned);
+
+        const stateAfterAddXp = get();
+        const levelUpOccurred = stateAfterAddXp.user.level > levelBefore;
+
+        const updatedHistory = [historyItem, ...stateAfterAddXp.user.quizHistory];
+        const updatedCompleted = stateAfterAddXp.user.completedTopics.includes(topicId)
+          ? stateAfterAddXp.user.completedTopics
+          : [...stateAfterAddXp.user.completedTopics, topicId];
+
+        // Evaluate 6 Badges
+        const currentBadges = stateAfterAddXp.user.badges;
+        const newlyUnlocked: Badge[] = [];
+
+        const updatedBadges = currentBadges.map((badge) => {
+          if (badge.unlockedAt) return badge; // Already unlocked
+
+          let unlock = false;
+          if (badge.id === 'first-steps' && updatedHistory.length >= 1) {
+            unlock = true;
+          } else if (badge.id === 'perfectionist' && score === totalQuestions && totalQuestions >= 5) {
+            unlock = true;
+          } else if (badge.id === 'on-fire' && stateAfterAddXp.user.streakDays >= 3) {
+            unlock = true;
+          } else if (badge.id === 'unstoppable' && stateAfterAddXp.user.streakDays >= 7) {
+            unlock = true;
+          } else if (badge.id === 'polymath' && updatedCompleted.length >= 5) {
+            unlock = true;
+          } else if (
+            badge.id === 'speed-demon' &&
+            durationSeconds <= 60 &&
+            score / totalQuestions >= 0.8
+          ) {
+            unlock = true;
+          }
+
+          if (unlock) {
+            const unlockedBadge = { ...badge, unlockedAt: new Date().toISOString() };
+            newlyUnlocked.push(unlockedBadge);
+            return unlockedBadge;
+          }
+          return badge;
+        });
+
+        set((s) => ({
+          user: {
+            ...s.user,
+            quizHistory: updatedHistory,
+            completedTopics: updatedCompleted,
+            badges: updatedBadges,
+            activityHeatmap: {
+              ...s.user.activityHeatmap,
+              [today]: (s.user.activityHeatmap[today] || 0) + 1,
+            },
+          },
+          newlyUnlockedBadges: newlyUnlocked,
+        }));
+
+        return { newlyUnlocked, levelUpOccurred };
+      },
+
+      resetProgress: () => {
+        set({
+          user: {
+            userId: generateAnonymousId(),
+            username: 'Learner',
+            level: 1,
+            totalXp: 0,
+            currentXp: 0,
+            nextLevelXp: 250,
+            streakDays: 1,
+            longestStreak: 1,
+            lastActiveDate: getTodayString(),
+            comboStreak: 0,
+            completedTopics: [],
+            badges: INITIAL_BADGES,
+            quizHistory: [],
+            activityHeatmap: { [getTodayString()]: 1 },
+          },
+          pendingLevelUp: null,
+          newlyUnlockedBadges: [],
+        });
+      },
     }),
-}));
+    {
+      name: 'levelup-game-storage',
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);

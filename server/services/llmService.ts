@@ -284,3 +284,50 @@ export async function generateContentWithGemini(topic: string, isRetry = false):
   console.warn(`[GeminiService] API call failed across all candidate models (${lastError?.message}). Serving structured fallback payload.`);
   return generateFallbackContent(topic);
 }
+
+/**
+ * Reframe a section of content into an alternate tone ("Simpler", "Story form", "Exam-focused")
+ */
+export async function reframeContentWithGemini(
+  content: string,
+  style: 'Simpler' | 'Story form' | 'Exam-focused'
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+    // Fallback reframed text if API key missing
+    if (style === 'Simpler') {
+      return `In simple terms: ${content.replace(/(However,|Furthermore,|Consequently,)/gi, '')} Basically, think of it like building blocks fitting together smoothly.`;
+    }
+    if (style === 'Story form') {
+      return `Imagine a team working under tight deadlines. ${content} Step by step, each piece fell into place, revealing a clear blueprint for success.`;
+    }
+    return `EXAM FOCUS: Key concept to remember: ${content} High-yield takeaway for tests: identify core inputs, state flow, and expected boundary outputs.`;
+  }
+
+  const ai = new GoogleGenerativeAI(apiKey);
+  const promptInstruction = `Reframe the following educational section text into an alternate tone: "${style}".
+Keep the explanation accurate and clear.
+Style guidelines:
+- "Simpler": ELI5 style, plain language, intuitive analogies, no jargon.
+- "Story form": Narrative framing, real-world metaphor, storytelling rhythm.
+- "Exam-focused": Bulleted high-yield points, key testable facts, bold emphasis on definitions.
+
+Original Content:
+"${content}"
+
+Return ONLY the reframed explanation text directly without markdown headers or fluff.`;
+
+  for (const modelName of PREFERRED_MODELS) {
+    try {
+      const model = ai.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(promptInstruction);
+      const text = result.response.text();
+      if (text && text.trim()) return text.trim();
+    } catch (err: any) {
+      console.warn(`[Reframe] Model ${modelName} error:`, err?.message);
+    }
+  }
+
+  // Fallback if network/API fails
+  return `Reframed (${style}): ${content}`;
+}

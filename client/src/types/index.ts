@@ -12,6 +12,8 @@ export interface Topic {
 export interface LessonSection {
   heading: string;
   content: string;
+  originalContent?: string;
+  activeStyle?: 'Original' | 'Simpler' | 'Story form' | 'Exam-focused';
 }
 
 export interface Lesson {
@@ -39,8 +41,16 @@ export interface GeneratedContent {
   quiz: QuizQuestion[];
 }
 
+export type BadgeId = 
+  | 'first-steps' 
+  | 'perfectionist' 
+  | 'on-fire' 
+  | 'unstoppable' 
+  | 'polymath' 
+  | 'speed-demon';
+
 export interface Badge {
-  id: string;
+  id: BadgeId;
   title: string;
   description: string;
   icon: string;
@@ -48,14 +58,30 @@ export interface Badge {
   rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
 }
 
+export interface QuizHistoryItem {
+  id: string;
+  topicId: string;
+  topicTitle: string;
+  score: number;
+  totalQuestions: number;
+  xpEarned: number;
+  durationSeconds: number;
+  date: string; // ISO date string
+}
+
 export interface UserProgress {
   userId: string;
   username: string;
   level: number;
+  totalXp: number;
   currentXp: number;
   nextLevelXp: number;
   streakDays: number;
-  totalPoints: number;
+  longestStreak: number;
+  lastActiveDate: string; // YYYY-MM-DD
+  comboStreak: number;
   completedTopics: string[];
   badges: Badge[];
+  quizHistory: QuizHistoryItem[];
+  activityHeatmap: Record<string, number>; // YYYY-MM-DD -> quiz count
 }

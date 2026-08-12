@@ -85,6 +85,39 @@ export async function generateContent(topic: string): Promise<GeneratedContent> 
   return { lesson, quiz };
 }
 
+/**
+ * Reframe a specific section into an alternate tone ("Simpler", "Story form", "Exam-focused")
+ */
+export async function reframeContent(
+  content: string,
+  style: 'Simpler' | 'Story form' | 'Exam-focused'
+): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE}/api/reframe-content`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content, style }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || 'Failed to reframe content');
+    }
+    return data.reframedContent;
+  } catch (err: any) {
+    console.warn('Reframe API call failed, using client-side fallback:', err);
+    if (style === 'Simpler') {
+      return `In plain language: ${content.replace(/(However,|Furthermore,)/gi, '')} Simply put, this acts like interconnected building blocks working smoothly together.`;
+    }
+    if (style === 'Story form') {
+      return `Picture an engineer solving a daily challenge. ${content} Through careful steps, the solution fell into place seamlessly.`;
+    }
+    return `EXAM FOCUS: ${content} High-yield key fact: master the core inputs, execution flow, and expected boundary outputs.`;
+  }
+}
+
 // Backward compatible alias
 export async function fetchGeneratedLesson(topicId: string, topicTitle?: string) {
   const content = await generateContent(topicTitle || topicId);
